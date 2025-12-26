@@ -1,0 +1,45 @@
+name: CI (Altiora Backup Pro)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  windows-tests:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Show Python
+        shell: pwsh
+        run: |
+          python --version
+          python -c "import sys; print(sys.executable)"
+
+      - name: Install dependencies (if requirements.txt exists)
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") {
+            pip install -r requirements.txt
+          } else {
+            Write-Host "No requirements.txt found. Skipping."
+          }
+
+      - name: Run stability tests
+        shell: pwsh
+        env:
+          PY_EXE: python
+        run: |
+          chcp 65001 | Out-Null
+          pwsh -NoProfile -ExecutionPolicy Bypass -File .\test_altiora_stability.ps1
