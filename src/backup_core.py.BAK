@@ -1,0 +1,309 @@
+﻿import os
+import io
+import json
+import uuid
+import time
+import base64
+import struct
+import tarfile
+import tempfile
+from datetime import datetime
+from typing import Dict, Any, List
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+
+MAGIC = b"ALTBKUP1"   # 8 bytes
+VERSION = 1           # uint16
+GCM_IV_LEN = 12
+GCM_TAG_LEN = 16
+
+EXCLUDED_DIRS = {".git", "__pycache__", "node_modules"}
+
+
+def _b64e(b: bytes) -> str:
+    return base64.b64encode(b).decode("utf-8")
+
+
+def _b64d(s: str) -> bytes:
+    return base64.b64decode(s.encode("utf-8"))
+
+
+def _derive_key(password: str, salt: bytes, iterations: int) -> bytes:
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,  # AES-256
+        salt=salt,
+        iterations=iterations,
+    )
+    return kdf.derive(password.encode("utf-8"))
+
+
+def _safe_join(base_dir: str, rel_path: str) -> str:
+    """Empêche d'écrire en dehors de output_dir (path traversal)."""
+    rel_path = rel_path.replace("\\", "/").lstrip("/")
+    norm = os.path.normpath(rel_path)
+    out = os.path.abspath(os.path.join(base_dir, norm))
+    base = os.path.abspath(base_dir)
+    if not out.startswith(base + os.sep) and out != base:
+        raise ValueError(f"Chemin dangereux détecté: {rel_path}")
+    return out
+
+
+class BackupCore:
+    def __init__(self, manager=None):
+        if manager is None:
+            from src.backup_manager import BackupManager
+            self.manager = BackupManager()
+        else:
+            self.manager = manager
+
+    def _collect_files(self, source_path: str) -> (str, List[str]):
+        """Retourne (base_dir, liste fichiers absolus)"""
+        source_path = os.path.abspath(source_path)
+
+        if os.path.isfile(source_path):
+            base_dir = os.path.dirname(source_path) or "."
+            return base_dir, [source_path]
+
+        base_dir = source_path
+        files = []
+        for root, dirs, filenames in os.walk(source_path):
+            dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+            for fn in filenames:
+                files.append(os.path.join(root, fn))
+        return base_dir, files
+
+    def create_backup(
+        self,
+        source_path: str,
+        output_path: str,
+        password: str,
+        iterations: int = 300_000,
+        compress: bool = True
+    ) -> bool:
+        """
+        Crée un container .altb :
+        MAGIC + VERSION + HEADER_LEN + HEADER_JSON + CIPHERTEXT + TAG
+        Payload = archive tar(.gz)
+        """
+        start = time.time()
+        output_path = os.path.abspath(output_path)
+        out_dir = os.path.dirname(output_path) or "."
+        os.makedirs(out_dir, exist_ok=True)
+
+        backup_id = str(uuid.uuid4())[:16]
+        base_dir, files_to_backup = self._collect_files(source_path)
+
+        # Manifest (utile pour listing + audit)
+        manifest = []
+        total_size = 0
+        for p in files_to_backup:
+            try:
+                st = os.stat(p)
+                rel = os.path.relpath(p, base_dir).replace("\\", "/")
+                manifest.append({"path": rel, "size": int(st.st_size), "mtime": int(st.st_mtime)})
+                total_size += int(st.st_size)
+            except:
+                continue
+
+        # 1) Créer archive temp
+        suffix = ".tar.gz" if compress else ".tar"
+        mode = "w:gz" if compress else "w"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp_archive = tmp.name
+
+        try:
+            with tarfile.open(tmp_archive, mode) as tf:
+                for abs_path in files_to_backup:
+                    try:
+                        rel = os.path.relpath(abs_path, base_dir)
+                        tf.add(abs_path, arcname=rel)
+                    except Exception:
+                        continue
+
+            # 2) Préparer header crypto
+            salt = os.urandom(16)
+            iv = os.urandom(GCM_IV_LEN)
+            key = _derive_key(password, salt, int(iterations))
+
+            header: Dict[str, Any] = {
+                "version": VERSION,
+                "backup_id": backup_id,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+                "source": os.path.abspath(source_path),
+                "archive": "tar.gz" if compress else "tar",
+                "algo": "AES-256-GCM",
+                "kdf": "PBKDF2HMAC-SHA256",
+                "iterations": int(iterations),
+                "salt_b64": _b64e(salt),
+                "iv_b64": _b64e(iv),
+                "files_count": len(manifest),
+                "plain_size": total_size,
+                "manifest": manifest,
+            }
+            header_bytes = json.dumps(header, ensure_ascii=False).encode("utf-8")
+
+            # 3) Écriture atomique du container
+            tmp_out = output_path + ".tmp"
+            encryptor = Cipher(algorithms.AES(key), modes.GCM(iv)).encryptor()
+
+            with open(tmp_archive, "rb") as fin, open(tmp_out, "wb") as fout:
+                fout.write(MAGIC)
+                fout.write(struct.pack(">H", VERSION))
+                fout.write(struct.pack(">I", len(header_bytes)))
+                fout.write(header_bytes)
+
+                while True:
+                    chunk = fin.read(1024 * 1024)  # 1MB
+                    if not chunk:
+                        break
+                    fout.write(encryptor.update(chunk))
+
+                fout.write(encryptor.finalize())
+                fout.write(encryptor.tag)
+
+            os.replace(tmp_out, output_path)
+
+            elapsed = time.time() - start
+            speed_bps = total_size / elapsed if elapsed > 0 else 0
+
+            # Enregistrer metadata dans DB
+            self.manager.add_backup({
+                "backup_id": backup_id,
+                "name": os.path.basename(output_path),
+                "file_path": output_path,
+                "source": os.path.abspath(source_path),
+                "size": os.path.getsize(output_path),
+                "plain_size": total_size,
+                "timestamp": header["created_at"],
+                "files_count": len(manifest),
+                "duration": elapsed,
+                "speed_bps": speed_bps,
+                "algo": "AES-256-GCM",
+                "iterations": int(iterations),
+            })
+
+            print("\n✅ BACKUP RÉUSSI (AES-256-GCM streaming)")
+            print(f"   📁 Fichier: {output_path}")
+            print(f"   🆔 ID: {backup_id}")
+            print(f"   📦 Taille backup: {os.path.getsize(output_path)/1024/1024:.2f} MB")
+            print(f"   📄 Taille données: {total_size/1024/1024:.2f} MB")
+            print(f"   📈 Fichiers: {len(manifest)}")
+            print(f"   ⏱️  Durée: {elapsed:.1f}s ({speed_bps/1024/1024:.2f} MB/s)")
+            print(f"   🔒 KDF: PBKDF2 {iterations} itérations")
+
+            return True
+
+        except Exception as e:
+            print(f"\n❌ ERREUR BACKUP: {e}")
+            try:
+                if os.path.exists(output_path + ".tmp"):
+                    os.remove(output_path + ".tmp")
+            except:
+                pass
+            return False
+
+        finally:
+            try:
+                if os.path.exists(tmp_archive):
+                    os.remove(tmp_archive)
+            except:
+                pass
+
+    def restore_backup(self, backup_path: str, output_dir: str, password: str) -> bool:
+        start = time.time()
+        backup_path = os.path.abspath(backup_path)
+        output_dir = os.path.abspath(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # 1) Lire header + tag + déchiffrer vers archive temp
+        with open(backup_path, "rb") as f:
+            magic = f.read(8)
+            if magic != MAGIC:
+                raise ValueError("Format inconnu (MAGIC incorrect).")
+
+            ver = struct.unpack(">H", f.read(2))[0]
+            if ver != VERSION:
+                raise ValueError(f"Version non supportée: {ver}")
+
+            header_len = struct.unpack(">I", f.read(4))[0]
+            header = json.loads(f.read(header_len).decode("utf-8"))
+
+            salt = _b64d(header["salt_b64"])
+            iv = _b64d(header["iv_b64"])
+            iterations = int(header["iterations"])
+            key = _derive_key(password, salt, iterations)
+
+            file_size = os.path.getsize(backup_path)
+            ciphertext_start = 8 + 2 + 4 + header_len
+            ciphertext_end = file_size - GCM_TAG_LEN
+
+            f.seek(-GCM_TAG_LEN, os.SEEK_END)
+            tag = f.read(GCM_TAG_LEN)
+
+            f.seek(ciphertext_start, os.SEEK_SET)
+            decryptor = Cipher(algorithms.AES(key), modes.GCM(iv, tag)).decryptor()
+
+            suffix = ".tar.gz" if header.get("archive") == "tar.gz" else ".tar"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp_archive = tmp.name
+
+            try:
+                remaining = ciphertext_end - ciphertext_start
+                with open(tmp_archive, "wb") as out:
+                    while remaining > 0:
+                        to_read = min(1024 * 1024, remaining)
+                        chunk = f.read(to_read)
+                        if not chunk:
+                            break
+                        remaining -= len(chunk)
+                        out.write(decryptor.update(chunk))
+                    out.write(decryptor.finalize())
+
+                # 2) Extraire l’archive en mode SAFE
+                mode = "r:gz" if header.get("archive") == "tar.gz" else "r"
+                restored = 0
+                total_bytes = 0
+
+                with tarfile.open(tmp_archive, mode) as tf:
+                    for member in tf.getmembers():
+                        if member.isdir():
+                            safe_dir = _safe_join(output_dir, member.name)
+                            os.makedirs(safe_dir, exist_ok=True)
+                            continue
+
+                        safe_path = _safe_join(output_dir, member.name)
+                        os.makedirs(os.path.dirname(safe_path), exist_ok=True)
+
+                        src = tf.extractfile(member)
+                        if src is None:
+                            continue
+
+                        with open(safe_path, "wb") as dst:
+                            data = src.read()
+                            dst.write(data)
+                            total_bytes += len(data)
+                        restored += 1
+
+                elapsed = time.time() - start
+                print("\n✅ RESTAURATION RÉUSSIE (AES-256-GCM streaming)")
+                print(f"   📂 Destination: {output_dir}")
+                print(f"   📁 Fichiers restaurés: {restored}")
+                print(f"   📄 Données restaurées: {total_bytes/1024/1024:.2f} MB")
+                print(f"   ⏱️  Durée: {elapsed:.1f}s")
+                return True
+
+            except Exception as e:
+                print(f"\n❌ ERREUR RESTORE: {e}")
+                return False
+
+            finally:
+                try:
+                    if os.path.exists(tmp_archive):
+                        os.remove(tmp_archive)
+                except:
+                    pass
