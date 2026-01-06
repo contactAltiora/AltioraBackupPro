@@ -27,3 +27,8 @@ jobs:
       - name: Run CI smoke test
         run: |
           pwsh -File .\tests\ci_smoke.ps1
+      - name: Run security tamper test
+        run: |
+          pwsh -File .\tests\security_tamper_test.ps1
+        shell: pwsh
+
