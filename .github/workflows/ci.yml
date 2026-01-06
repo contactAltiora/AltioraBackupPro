@@ -129,9 +129,4 @@ jobs:
           files: |
             dist/altiora.exe
             dist/altiora.exe.sha256
-
-
-
-
             dist/sbom.cdx.json
-
