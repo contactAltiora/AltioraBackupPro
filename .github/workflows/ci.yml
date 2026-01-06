@@ -40,6 +40,22 @@ jobs:
         shell: pwsh
         run: |
           pwsh -File .\tests\security_audit.ps1
+      - name: Generate SBOM (CycloneDX)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .\artifacts | Out-Null
+          python -m pip install --upgrade pip
+          pip install cyclonedx-bom
+          # Génère un SBOM CycloneDX depuis tes requirements CI (ajuste si besoin)
+          cyclonedx-py -r .\requirements-ci.txt -o .\artifacts\sbom.cdx.json
+          Get-ChildItem .\artifacts | Format-Table -AutoSize
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: altiora-sbom-cyclonedx
+          path: artifacts/sbom.cdx.json
+
 
       - name: PyInstaller build
         shell: pwsh
@@ -108,6 +124,7 @@ jobs:
           files: |
             dist/altiora.exe
             dist/altiora.exe.sha256
+
 
 
 
