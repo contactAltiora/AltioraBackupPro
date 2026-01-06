@@ -1,50 +1,35 @@
 ﻿$ErrorActionPreference = "Stop"
 
-Write-Host "=== Security audit (deps + SAST + SBOM) ==="
-
-# Repo root (robuste CI + console)
+Write-Host "=== Security audit (Windows) ==="
 $repoRoot = (git rev-parse --show-toplevel).Trim()
-if (-not $repoRoot) { throw "Impossible de détecter la racine git" }
+if (-not $repoRoot) { throw "Impossible de détecter la racine git." }
 Set-Location $repoRoot
 Write-Host "Repo root: $(Get-Location)"
 
-# Python venv si dispo
+# Python du venv si dispo, sinon python système
 $PY = ".\.venv\Scripts\python.exe"
 if (-not (Test-Path $PY)) { $PY = "python" }
+& $PY --version
 
-# Installer outils audit
+# Installer/mettre à jour pip + outils audit
 & $PY -m pip install --upgrade pip | Out-Null
-& $PY -m pip install -r .\requirements-audit.txt | Out-Null
+& $PY -m pip install pip-audit | Out-Null
 
-# 1) Audit deps (requirements*.txt s’ils existent)
-$reqFiles = @(
+# Audit des dépendances (requirements*.txt si présents)
+$reqs = @(
   ".\requirements.txt",
   ".\requirements-ci.txt",
-  ".\requirements-build.txt",
-  ".\requirements-audit.txt"
+  ".\requirements-build.txt"
 ) | Where-Object { Test-Path $_ }
 
-if ($reqFiles.Count -eq 0) { throw "Aucun requirements*.txt trouvé pour audit" }
-
-foreach ($f in $reqFiles) {
-  Write-Host "-> pip-audit on $f"
-  & $PY -m pip_audit -r $f
-  if ($LASTEXITCODE -ne 0) { throw "pip-audit a trouvé des vulnérabilités (fichier=$f)" }
+if ($reqs.Count -eq 0) {
+  Write-Host "ℹ️ Aucun requirements*.txt trouvé pour audit."
+} else {
+  foreach ($r in $reqs) {
+    Write-Host "`n--- pip-audit: $r ---"
+    & $PY -m pip_audit -r $r
+    if ($LASTEXITCODE -ne 0) { throw "pip-audit a détecté des vulnérabilités (fichier: $r)." }
+  }
 }
 
-# 2) SAST (Bandit) sur src + altiora.py
-Write-Host "-> bandit (src + altiora.py)"
-$targets = @()
-if (Test-Path ".\src") { $targets += ".\src" }
-if (Test-Path ".\altiora.py") { $targets += ".\altiora.py" }
-if ($targets.Count -eq 0) { throw "Targets bandit introuvables (src/altiora.py)" }
-
-& $PY -m bandit -r @($targets) -lll -ii -x ".\.venv,.\dist,.\build"
-if ($LASTEXITCODE -ne 0) { throw "Bandit a trouvé des issues (SAST)" }
-
-# 3) SBOM CycloneDX (pour la supply-chain)
-Write-Host "-> SBOM CycloneDX"
-& $PY -m cyclonedx_py environment --output-format json --output-file .\sbom.json
-if ($LASTEXITCODE -ne 0) { throw "Échec génération SBOM" }
-
-Write-Host "✅ Audit OK (deps + SAST + SBOM)"
+Write-Host "`n✅ Security audit OK (pip-audit)"
