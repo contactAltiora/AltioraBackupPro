@@ -30,6 +30,23 @@ jobs:
       - name: Run security tamper test
         run: |
           pwsh -File .\tests\security_tamper_test.ps1
+      - name: PyInstaller build
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-build.txt
+          pyinstaller altiora.spec --clean
+        shell: pwsh
+
+      - name: Compute SHA256
+        run: |
+          Get-FileHash .\dist\altiora.exe -Algorithm SHA256 | Format-List
+        shell: pwsh
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: altiora-windows-exe
+          path: dist/altiora.exe
       - name: Run robustness edge cases
         run: |
           pwsh -File .\tests\robustness_edge_cases.ps1
@@ -40,6 +57,7 @@ jobs:
           pwsh -File .\tests\performance_benchmark.ps1
         shell: pwsh
         shell: pwsh
+
 
 
 
