@@ -30,5 +30,15 @@ jobs:
       - name: Run security tamper test
         run: |
           pwsh -File .\tests\security_tamper_test.ps1
+      - name: Run robustness edge cases
+        run: |
+          pwsh -File .\tests\robustness_edge_cases.ps1
         shell: pwsh
+
+      - name: Run performance benchmark (light)
+        run: |
+          pwsh -File .\tests\performance_benchmark.ps1
+        shell: pwsh
+        shell: pwsh
+
 
