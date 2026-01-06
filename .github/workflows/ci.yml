@@ -100,8 +100,14 @@ jobs:
         with:
 
 
+          name: Altiora Backup Pro ${{ github.ref_name }}
+          body: |
+            ✅ Build Windows: altiora.exe + SHA256
+            📌 Tag: ${{ github.ref_name }}
+            🔒 Intégrité: tamper test + security audit OK (CI)
           files: |
             dist/altiora.exe
             dist/altiora.exe.sha256
+
 
 
