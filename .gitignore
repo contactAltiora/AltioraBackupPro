@@ -1,0 +1,8 @@
+﻿.venv/
+*.altb
+out_test/
+backups.json
+*_header.patch
+*.patch
+*.diff
+audit_*.txt
