@@ -104,6 +104,11 @@ jobs:
         with:
           name: altiora-windows-exe
           path: dist
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: altiora-sbom-cyclonedx
+          path: dist
 
       - name: List dist
         shell: pwsh
@@ -127,4 +132,6 @@ jobs:
 
 
 
+
+            dist/sbom.cdx.json
 
