@@ -3,12 +3,14 @@
 on:
   push:
     branches: ["main"]
+    tags: ["v*"]
   pull_request:
     branches: ["main"]
 
 jobs:
   windows-tests:
     runs-on: windows-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,54 +21,60 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps (CI)
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
-        shell: pwsh
 
       - name: Run CI smoke test
+        shell: pwsh
         run: |
           pwsh -File .\tests\ci_smoke.ps1
+
       - name: Run security tamper test
+        shell: pwsh
         run: |
           pwsh -File .\tests\security_tamper_test.ps1
-            - name: Run security audit
+
+      - name: Run security audit
+        shell: pwsh
         run: |
           pwsh -File .\tests\security_audit.ps1
+
+      - name: PyInstaller build
         shell: pwsh
-- name: PyInstaller build
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-build.txt
           pyinstaller altiora.spec --clean
-        shell: pwsh
 
       - name: Compute SHA256
+        shell: pwsh
         run: |
           Get-FileHash .\dist\altiora.exe -Algorithm SHA256 | Format-List
-        shell: pwsh
+          (Get-FileHash .\dist\altiora.exe -Algorithm SHA256).Hash | Out-File -Encoding ASCII .\dist\altiora.exe.sha256
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: altiora-windows-exe
-          path: dist/altiora.exe
-
-
+          path: |
+            dist/altiora.exe
+            dist/altiora.exe.sha256
 
       - name: Run robustness edge cases
+        shell: pwsh
         run: |
           pwsh -File .\tests\robustness_edge_cases.ps1
-        shell: pwsh
 
       - name: Run performance benchmark (light)
+        shell: pwsh
         run: |
           pwsh -File .\tests\performance_benchmark.ps1
-        shell: pwsh
-        shell: pwsh
+
   release:
     name: Release (Windows exe)
-    needs: build
+    needs: windows-tests
     runs-on: windows-latest
     permissions:
       contents: write
@@ -81,11 +89,10 @@ jobs:
           name: altiora-windows-exe
           path: dist
 
-      - name: Compute SHA256
+      - name: List dist
         shell: pwsh
         run: |
-          Get-FileHash .\dist\altiora.exe -Algorithm SHA256 | Format-List
-          (Get-FileHash .\dist\altiora.exe -Algorithm SHA256).Hash | Out-File -Encoding ASCII .\dist\altiora.exe.sha256
+          Get-ChildItem -Recurse .\dist | Format-Table -AutoSize
 
       - name: Create GitHub Release (tag push only)
         if: startsWith(github.ref, 'refs/tags/')
@@ -94,4 +101,3 @@ jobs:
           files: |
             dist/altiora.exe
             dist/altiora.exe.sha256
-
