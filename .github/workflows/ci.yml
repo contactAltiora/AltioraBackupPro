@@ -47,6 +47,9 @@ jobs:
         with:
           name: altiora-windows-exe
           path: dist/altiora.exe
+
+
+
       - name: Run robustness edge cases
         run: |
           pwsh -File .\tests\robustness_edge_cases.ps1
@@ -57,6 +60,7 @@ jobs:
           pwsh -File .\tests\performance_benchmark.ps1
         shell: pwsh
         shell: pwsh
+
 
 
 
