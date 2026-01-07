@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Script CLI Altiora Backup Pro.
-Interface ligne de commande complète.
+Interface ligne de commande complÃ¨te.
 """
 
 import argparse
@@ -17,15 +17,21 @@ class AltioraCLI:
     
     def run(self):
         parser = argparse.ArgumentParser(
-            description="Altiora Backup Pro v1.0 - Solution de backup chiffré",
+            description="Altiora Backup Pro v1.0 - Solution de backup chiffrÃ©",
             prog="altiora"
         )
         
-        subparsers = parser.add_subparsers(dest="command", help="Commandes disponibles")
+        
+parser.add_argument(
+    "--version",
+    action="version",
+    version="Altiora Backup Pro v1.0.10"
+)
+subparsers = parser.add_subparsers(dest="command", help="Commandes disponibles")
         
         # Backup command
-        backup_parser = subparsers.add_parser("backup", help="Créer un backup chiffré")
-        backup_parser.add_argument("source", help="Dossier source à sauvegarder")
+        backup_parser = subparsers.add_parser("backup", help="CrÃ©er un backup chiffrÃ©")
+        backup_parser.add_argument("source", help="Dossier source Ã  sauvegarder")
         backup_parser.add_argument("output", help="Fichier de sortie (.altb)")
         backup_parser.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
         
@@ -49,43 +55,43 @@ class AltioraCLI:
             return 0
         
         if args.command == "backup":
-            print(f"📦 Backup de {args.source} vers {args.output}")
-            # Ici, ajouter la logique de backup réelle
+            print(f"ðŸ“¦ Backup de {args.source} vers {args.output}")
+            # Ici, ajouter la logique de backup rÃ©elle
             return 0
             
         elif args.command == "restore":
-            print(f"🔄 Restauration de {args.backup_file} vers {args.destination}")
-            # Ici, ajouter la logique de restauration réelle
+            print(f"ðŸ”„ Restauration de {args.backup_file} vers {args.destination}")
+            # Ici, ajouter la logique de restauration rÃ©elle
             return 0
             
         elif args.command == "list":
-            print("📋 Liste des backups:")
+            print("ðŸ“‹ Liste des backups:")
             backups = self.manager.list_backups()
             for backup in backups:
-                print(f"  • {backup['name']} - {backup['date']}")
+                print(f"  â€¢ {backup['name']} - {backup['date']}")
             return 0
             
        elif args.command == "stats":
     stats = self.manager.get_statistics()
-    print(f"📊 Statistiques:")
+    print(f"ðŸ“Š Statistiques:")
     
-    # Version robuste qui gère les clés manquantes
+    # Version robuste qui gÃ¨re les clÃ©s manquantes
     total = stats.get('total', 0)
     last_backup = stats.get('last_backup', 'Aucun')
     total_size = stats.get('total_size_mb', 0)
     
-    print(f" • Backups totaux: {stats.get('total', 0)}")
-    print(f"  • Dernier backup: {last_backup}")
-    print(f"  • Taille totale: {total_size:.2f} MB")
+    print(f" â€¢ Backups totaux: {stats.get('total', 0)}")
+    print(f"  â€¢ Dernier backup: {last_backup}")
+    print(f"  â€¢ Taille totale: {total_size:.2f} MB")
     return 0
-            print(f"  • Dernier backup: {stats['last_backup']}")
-            print(f"  • Taille totale: {stats['total_size_mb']:.2f} MB")
+            print(f"  â€¢ Dernier backup: {stats['last_backup']}")
+            print(f"  â€¢ Taille totale: {stats['total_size_mb']:.2f} MB")
             return 0
         
         return 0
 
 def main():
-    """Point d'entrée pour la CLI."""
+    """Point d'entrÃ©e pour la CLI."""
     cli = AltioraCLI()
     return cli.run()
 
