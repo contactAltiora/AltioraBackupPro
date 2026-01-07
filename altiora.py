@@ -253,7 +253,12 @@ def main() -> int:
         print_footer(ok=False)
         return 1
 
-    parent = argparse.ArgumentParser(add_help=False)
+    parent = argparse.ArgumentParser(add_help=False)
+    parent.add_argument(
+        "--version",
+        action="version",
+        version="Altiora Backup Pro v1.0.12"
+    )
     parent.add_argument("--verbose", "-v", action="store_true", help="Affichage détaillé")
     parent.add_argument("--json", action="store_true", help="Sortie JSON (machine-readable)")
 
@@ -496,5 +501,6 @@ Prix: 24,90€ • Garantie: 30 jours
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
