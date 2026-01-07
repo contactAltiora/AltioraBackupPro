@@ -11,10 +11,12 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   windows_tests:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,3 +36,69 @@ jobs:
         shell: pwsh
         run: |
           pwsh -File .\tests\ci_smoke.ps1
+
+  release_windows:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    needs: [windows_tests]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build deps
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          # adapte si tu as un requirements-build.txt
+          pip install -r requirements-ci.txt
+          pip install pyinstaller cyclonedx-bom
+
+      - name: Build exe (PyInstaller)
+        shell: pwsh
+        run: |
+          if (Test-Path ".\altiora.spec") {
+            pyinstaller .\altiora.spec
+          } elseif (Test-Path ".\AltioraBackupPro.spec") {
+            pyinstaller .\AltioraBackupPro.spec
+          } else {
+            # fallback : adapte le point d'entrée si besoin
+            pyinstaller -F .\altiora.py -n altiora
+          }
+          dir .\dist
+
+      - name: Compute SHA256
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem .\dist -File -Filter "altiora*.exe" | Select-Object -First 1
+          if (!$exe) { throw "EXE not found in dist" }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -Encoding ascii ".\dist\$($exe.Name).sha256"
+          Get-Content ".\dist\$($exe.Name).sha256"
+
+      - name: Generate SBOM (CycloneDX)
+        shell: pwsh
+        run: |
+          mkdir artifacts -Force | Out-Null
+          # SBOM sur requirements runtime/ci (adapte si tu as un requirements-runtime.txt)
+          if (Test-Path ".\requirements-runtime.txt") {
+            cyclonedx-py requirements .\requirements-runtime.txt --output-file artifacts\sbom.cdx.json
+          } else {
+            cyclonedx-py requirements .\requirements-ci.txt --output-file artifacts\sbom.cdx.json
+          }
+          Get-Item artifacts\sbom.cdx.json
+
+      - name: Create GitHub Release + upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.sha256
+            artifacts/sbom.cdx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
