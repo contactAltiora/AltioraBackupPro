@@ -6,3 +6,7 @@ backups.json
 *.patch
 *.diff
 audit_*.txt
+
+# local backups
+*.bak
+
