@@ -258,10 +258,14 @@ def main() -> int:
     parent.add_argument("--json", action="store_true", help="Sortie JSON (machine-readable)")
 
     parser = argparse.ArgumentParser(
-        description="Altiora Backup Pro - Solution de backup chiffré (AES-256-GCM)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        parents=[parent],
-    )
+    description="""Altiora Backup Pro - Solution de backup chiffré (AES-256-GCM)
+
+Chiffrement AES-256-GCM (standard industriel)
+Prix: 24,90€ • Garantie: 30 jours
+""",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    parents=[parent],
+)
     subparsers = parser.add_subparsers(dest="command", title="Commandes", help="Commande à exécuter")
 
     # backup
@@ -492,3 +496,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
