@@ -13,7 +13,7 @@ class BackupManager:
         """Charge la base de données depuis le fichier"""
         if os.path.exists(self.db_file):
             try:
-                with open(self.db_file, "r", encoding="utf-8") as f:
+                with open(self.db_file, "r", encoding="utf-8-sig") as f:
                     self.backups = json.load(f)
                 print(f"  → Base de données chargée ({len(self.backups)} backups)")
             except Exception as e:

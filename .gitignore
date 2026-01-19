@@ -10,3 +10,5 @@ audit_*.txt
 # local backups
 *.bak
 
+__pycache__/
+*.pyc

@@ -1,4 +1,5 @@
-﻿import os
+from src import license_core
+import os
 import json
 import uuid
 import time
@@ -30,6 +31,21 @@ if len(MAGIC9) != 9:
 VERSION = 1
 GCM_IV_LEN = 12
 GCM_TAG_LEN = 16
+
+
+# ------------------------------------------------------------------
+# EDITION / LIMITS
+# ------------------------------------------------------------------
+EDITION = os.environ.get("ALTIORA_EDITION", "PRO").upper()  # "FREE" or "PRO"
+FREE_RESTORE_LIMIT_BYTES = 100 * 1024 * 1024  # 100 MiB strict
+
+# Si on demande PRO, on vérifie la licence. Sinon, on bascule en FREE.
+if EDITION == "PRO":
+    ok, reason = license_core.verify_license()
+    if not ok:
+        # Fallback silencieux côté code
+        EDITION = "FREE"
+
 
 EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv"}
 
@@ -531,6 +547,29 @@ class BackupCore:
         if not header:
             print("❌ Échec restauration: format non reconnu.")
             return False
+
+        # ------------------------------------------------------------------
+        # FREE: limitation RESTORE uniquement (<= 100 Mo restaurables)
+        # Blocage AVANT toute écriture sur disque.
+        # ------------------------------------------------------------------
+        if EDITION == "FREE":
+            try:
+                plain_size = int(header.get("plain_size") or 0)
+                if plain_size <= 0:
+                    manifest = header.get("manifest", [])
+                    if isinstance(manifest, list):
+                        plain_size = sum(int(it.get("size") or 0) for it in manifest)
+                if plain_size > FREE_RESTORE_LIMIT_BYTES:
+                    total_mb = plain_size / (1024 * 1024)
+                    print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free")
+                    print(f"   Taille à restaurer : {total_mb:.2f} Mo")
+                    print("   Limite Free        : 100 Mo\n")
+                    print("👉 Passez à Altiora Backup Pro (24,90€) pour restaurer sans limite.")
+                    return False
+            except Exception:
+                print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free (erreur taille)")
+                print("👉 Passez à Altiora Backup Pro (24,90€) pour restaurer sans limite.")
+                return False
 
         magic_len = int(header.get("_magic_len", 8))
         header_len = int(header.get("_header_len", 0))
