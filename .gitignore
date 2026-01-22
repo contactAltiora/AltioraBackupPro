@@ -29,3 +29,6 @@ altiora.spec
 build/
 dist/
 
+
+public_key.b64
+
