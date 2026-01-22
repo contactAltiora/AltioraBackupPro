@@ -1,12 +1,25 @@
-﻿.venv/
-*.altb
-out_test/
-backups.json
-*_header.patch
-*.patch
-*.diff
-audit_*.txt
+﻿# Python
+__pycache__/
+*.pyc
 
-# local backups
-*.bak
+# PyInstaller / build artifacts
+build/
+dist/
+*.spec
 
+# Local tools / scratch
+._PYZ_extracted.pyz
+_patch_*.py
+_fix_*.py
+_rewrite_*.py
+_extract_*.py
+
+# Backups created by patch scripts
+*.bak*
+src/*.bak*
+# Local scratch
+_list_pyz_modules.py
+_reset_edition_block.py
+_reset_edition_block_v2.py
+altiora_free_restore_100mb_and_bom.patch
+src/backup_core.py.backup

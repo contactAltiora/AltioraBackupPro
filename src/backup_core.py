@@ -1,4 +1,5 @@
-﻿import os
+from src import license_core
+import os
 import json
 import uuid
 import time
@@ -30,6 +31,38 @@ if len(MAGIC9) != 9:
 VERSION = 1
 GCM_IV_LEN = 12
 GCM_TAG_LEN = 16
+
+
+# ------------------------------------------------------------------
+# EDITION / LIMITS
+# ------------------------------------------------------------------
+# -----------------------------
+# Edition / Licence / Limites
+# -----------------------------
+EDITION_REQUESTED = os.environ.get("ALTIORA_EDITION", "PRO").upper()  # "FREE" or "PRO"
+EDITION = EDITION_REQUESTED
+EDITION_EFFECTIVE_REASON = "ENV"  # ENV / LICENSE_OK / LICENSE_FAIL:* / BYPASS_DEV
+EDITION_REASON = EDITION_EFFECTIVE_REASON  # alias compat
+
+FREE_RESTORE_LIMIT_BYTES = 100 * 1024 * 1024  # 100 MiB strict
+
+# Si on demande PRO, on vérifie la licence. Sinon, on reste en FREE.
+if EDITION == "PRO":
+    # DEV only: bypass licence check (never set this in production)
+    if os.environ.get("ALTIORA_DEV_BYPASS_LICENSE", "0") == "1":
+        EDITION_EFFECTIVE_REASON = "BYPASS_DEV"
+        EDITION_REASON = EDITION_EFFECTIVE_REASON
+    else:
+        ok, reason = license_core.verify_license()
+        if ok:
+            EDITION_EFFECTIVE_REASON = "LICENSE_OK"
+            EDITION_REASON = EDITION_EFFECTIVE_REASON
+        else:
+            EDITION_EFFECTIVE_REASON = "LICENSE_FAIL:%s" % (reason,)
+            EDITION_REASON = EDITION_EFFECTIVE_REASON
+            EDITION = "FREE"
+
+
 
 EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv"}
 
@@ -531,6 +564,31 @@ class BackupCore:
         if not header:
             print("❌ Échec restauration: format non reconnu.")
             return False
+
+        # ------------------------------------------------------------------
+        # FREE: limitation RESTORE uniquement (<= 100 Mo restaurables)
+        # Blocage AVANT toute écriture sur disque.
+        # ------------------------------------------------------------------
+        if EDITION == "FREE":
+            try:
+                plain_size = int(header.get("plain_size") or 0)
+                if plain_size <= 0:
+                    manifest = header.get("manifest", [])
+                    if isinstance(manifest, list):
+                        plain_size = sum(int(it.get("size") or 0) for it in manifest)
+                if plain_size > FREE_RESTORE_LIMIT_BYTES:
+                    total_mb = plain_size / (1024 * 1024)
+                    print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free")
+                    print(f"   Taille à restaurer : {total_mb:.2f} Mo")
+                    print("   Limite Free        : 100 Mo\n")
+                    print("👉 Passez à Altiora Backup Pro (24,90€) pour restaurer sans limite.")
+                    self.last_error_code = "FREE_LIMIT"
+                    self.last_exit_code = 101
+                    return False
+            except Exception:
+                print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free (erreur taille)")
+                print("👉 Passez à Altiora Backup Pro (24,90€) pour restaurer sans limite.")
+                return False
 
         magic_len = int(header.get("_magic_len", 8))
         header_len = int(header.get("_header_len", 0))

@@ -240,6 +240,18 @@ def main() -> int:
             except Exception:
                 pass
 
+            # --- Edition diagnostics (requested / effective / reason) ---
+            requested = getattr(backup_core_module, "EDITION_REQUESTED", (os.getenv("ALTIORA_EDITION") or "FREE").strip().upper())
+            effective = getattr(backup_core_module, "EDITION", "FREE")
+            reason = getattr(backup_core_module, "EDITION_REASON", getattr(backup_core_module, "EDITION_EFFECTIVE_REASON", "UNKNOWN"))
+
+            _show = ((os.getenv("ALTIORA_EDITION") or "").strip().upper() == "PRO") or bool(getattr(locals().get("args", None), "verbose", False))
+            if _show and not json_mode:
+                _safe_print(f"🧾 Edition: demandée={requested} • effective={effective} • raison={reason}")
+
+            if logger:
+                logger.info("Edition diag requested=%s effective=%s reason=%s", requested, effective, reason)
+            # --- end edition diagnostics ---
         if logger:
             logger.info("BackupCore initialized file=%s", getattr(backup_core_module, "__file__", "unknown"))
 
@@ -253,7 +265,8 @@ def main() -> int:
         print_footer(ok=False)
         return 1
 
-    parent = argparse.ArgumentParser(add_help=False)
+    parent = argparse.ArgumentParser(add_help=False)
+
     parent.add_argument(
         "--version",
         action="version",
@@ -423,6 +436,8 @@ Prix: 24,90€ • Garantie: 30 jours
 
         try:
             ok = bool(core.restore_backup(args.backup, args.output, args.password))
+            exit_code = 0 if ok else int(getattr(core, "last_exit_code", 1) or 1)
+
             if logger:
                 logger.info("restore ok=%s output=%s", ok, args.output)
         except Exception as e:
@@ -437,11 +452,9 @@ Prix: 24,90€ • Garantie: 30 jours
 
         if args.json:
             _emit_json({"ok": ok, "command": "restore", "output": args.output, "elapsed_s": round(time.time() - start_time, 3)})
-            return 0 if ok else 1
-
+            return exit_code
         print_footer(ok=ok)
-        return 0 if ok else 1
-
+        return exit_code
     if args.command == "list":
         backups = core.manager.list_backups() or []
         if args.json:
