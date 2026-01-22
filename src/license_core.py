@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 # IMPORTANT:
 # - La clé privée ne doit JAMAIS être dans le repo.
 # - Ici: clé publique embarquée dans le binaire Pro.
-PUBLIC_KEY_B64_EMBEDDED = "JXGFHbGZp4w/51P9wwaRzFTLy3mnE2SsxQ9wQP0jVmU="  # injected at build-time for Pro
+PUBLIC_KEY_B64_EMBEDDED = "7fEUhLtG8qTqCOuQNQfQZRQLfln0BJMq/oJwwVNHSqY="  # injected at build-time for Pro
 PUBLIC_KEY_B64 = (os.environ.get("ALTIORA_PUBLIC_KEY_B64", "").strip()
                  or PUBLIC_KEY_B64_EMBEDDED.strip())
 
