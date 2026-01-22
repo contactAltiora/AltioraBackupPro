@@ -36,15 +36,32 @@ GCM_TAG_LEN = 16
 # ------------------------------------------------------------------
 # EDITION / LIMITS
 # ------------------------------------------------------------------
-EDITION = os.environ.get("ALTIORA_EDITION", "PRO").upper()  # "FREE" or "PRO"
+# -----------------------------
+# Edition / Licence / Limites
+# -----------------------------
+EDITION_REQUESTED = os.environ.get("ALTIORA_EDITION", "PRO").upper()  # "FREE" or "PRO"
+EDITION = EDITION_REQUESTED
+EDITION_EFFECTIVE_REASON = "ENV"  # ENV / LICENSE_OK / LICENSE_FAIL:* / BYPASS_DEV
+EDITION_REASON = EDITION_EFFECTIVE_REASON  # alias compat
+
 FREE_RESTORE_LIMIT_BYTES = 100 * 1024 * 1024  # 100 MiB strict
 
-# Si on demande PRO, on vérifie la licence. Sinon, on bascule en FREE.
+# Si on demande PRO, on vérifie la licence. Sinon, on reste en FREE.
 if EDITION == "PRO":
-    ok, reason = license_core.verify_license()
-    if not ok:
-        # Fallback silencieux côté code
-        EDITION = "FREE"
+    # DEV only: bypass licence check (never set this in production)
+    if os.environ.get("ALTIORA_DEV_BYPASS_LICENSE", "0") == "1":
+        EDITION_EFFECTIVE_REASON = "BYPASS_DEV"
+        EDITION_REASON = EDITION_EFFECTIVE_REASON
+    else:
+        ok, reason = license_core.verify_license()
+        if ok:
+            EDITION_EFFECTIVE_REASON = "LICENSE_OK"
+            EDITION_REASON = EDITION_EFFECTIVE_REASON
+        else:
+            EDITION_EFFECTIVE_REASON = "LICENSE_FAIL:%s" % (reason,)
+            EDITION_REASON = EDITION_EFFECTIVE_REASON
+            EDITION = "FREE"
+
 
 
 EXCLUDED_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv"}
@@ -565,6 +582,8 @@ class BackupCore:
                     print(f"   Taille à restaurer : {total_mb:.2f} Mo")
                     print("   Limite Free        : 100 Mo\n")
                     print("👉 Passez à Altiora Backup Pro (24,90€) pour restaurer sans limite.")
+                    self.last_error_code = "FREE_LIMIT"
+                    self.last_exit_code = 101
                     return False
             except Exception:
                 print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free (erreur taille)")

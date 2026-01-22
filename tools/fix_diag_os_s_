@@ -1,0 +1,35 @@
+﻿import re
+from pathlib import Path
+
+ALT = Path(__file__).resolve().parents[1] / "altiora.py"
+text = ALT.read_text(encoding="utf-8")
+
+# On cherche le bloc diag et on supprime UNIQUEMENT la ligne "import os" à l'intérieur
+# (avec son indentation)
+pattern = r"(?m)^(?P<indent>[ \t]*)import\s+os\s*$"
+
+# Sécurise : on ne modifie que si on est DANS le bloc diagnostics
+if "# --- Edition diagnostics" not in text or "# --- end edition diagnostics" not in text:
+    print("[ERR] Edition diagnostics block markers not found. Aborting.")
+    raise SystemExit(2)
+
+start = text.index("# --- Edition diagnostics")
+end = text.index("# --- end edition diagnostics", start)
+block = text[start:end]
+
+new_block, n = re.subn(pattern, r"", block)
+
+if n == 0:
+    print("[OK] No 'import os' inside diag block; nothing to change.")
+    raise SystemExit(0)
+
+# Nettoyage: retire lignes vides multiples créées par la suppression
+new_block = re.sub(r"\n{3,}", "\n\n", new_block)
+
+new_text = text[:start] + new_block + text[end:]
+
+bak = ALT.with_suffix(".py.bak_diag_osfix")
+bak.write_text(text, encoding="utf-8")
+ALT.write_text(new_text, encoding="utf-8")
+
+print(f"[OK] Removed local 'import os' from diag block. Backup: {bak}")

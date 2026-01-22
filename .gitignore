@@ -1,14 +1,19 @@
-﻿.venv/
-*.altb
-out_test/
-backups.json
-*_header.patch
-*.patch
-*.diff
-audit_*.txt
-
-# local backups
-*.bak
-
+﻿# Python
 __pycache__/
 *.pyc
+
+# PyInstaller / build artifacts
+build/
+dist/
+*.spec
+
+# Local tools / scratch
+._PYZ_extracted.pyz
+_patch_*.py
+_fix_*.py
+_rewrite_*.py
+_extract_*.py
+
+# Backups created by patch scripts
+*.bak*
+src/*.bak*
