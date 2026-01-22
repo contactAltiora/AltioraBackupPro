@@ -245,7 +245,7 @@ def main() -> int:
             effective = getattr(backup_core_module, "EDITION", "FREE")
             reason = getattr(backup_core_module, "EDITION_REASON", getattr(backup_core_module, "EDITION_EFFECTIVE_REASON", "UNKNOWN"))
 
-            _show = ((os.getenv("ALTIORA_EDITION") or "").strip().upper() == "PRO") or bool(getattr(args, "verbose", False))
+            _show = ((os.getenv("ALTIORA_EDITION") or "").strip().upper() == "PRO") or bool(getattr(locals().get("args", None), "verbose", False))
             if _show and not json_mode:
                 _safe_print(f"🧾 Edition: demandée={requested} • effective={effective} • raison={reason}")
 
