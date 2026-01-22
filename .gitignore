@@ -23,3 +23,9 @@ _reset_edition_block.py
 _reset_edition_block_v2.py
 altiora_free_restore_100mb_and_bom.patch
 src/backup_core.py.backup
+
+# PyInstaller
+altiora.spec
+build/
+dist/
+
