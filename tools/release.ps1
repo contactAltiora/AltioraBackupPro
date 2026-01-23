@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory=$true)]
   [string]$Version,
 
@@ -18,7 +18,7 @@ $ErrorActionPreference = "Stop"
 
 function Require-Cmd([string]$name) {
   if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-    throw "Commande introuvable: $name. Installe/ajoute au PATH puis réessaie."
+    throw "Commande introuvable: $name. Installe/ajoute au PATH puis rÃ©essaie."
   }
 }
 
@@ -58,7 +58,7 @@ if (-not $SkipTag) {
   $tagExists = $false
   git show-ref --tags $tag 2>$null | Out-Null
   if ($LASTEXITCODE -eq 0) { $tagExists = $true }
-  if ($tagExists) { throw "Le tag $tag existe déjà. Choisis une autre version ou utilise -SkipTag." }
+  if ($tagExists) { throw "Le tag $tag existe dÃ©jÃ . Choisis une autre version ou utilise -SkipTag." }
 
   git tag $tag
   git push origin $tag | Out-Null
@@ -96,7 +96,7 @@ if (-not $NoHash) {
 # SBOM (requirements)
 if (-not $NoSbom) {
   Write-Host "[5/7] sbom (requirements)" -ForegroundColor Yellow
-  if (-not (Test-Path ".\requirements.txt")) { throw "requirements.txt introuvable à la racine." }
+  if (-not (Test-Path ".\requirements.txt")) { throw "requirements.txt introuvable Ã  la racine." }
   cyclonedx-py requirements --output-reproducible --of json -o .\dist\sbom.cdx.json .\requirements.txt
   if (-not (Test-Path ".\dist\sbom.cdx.json")) { throw "SBOM KO: dist\sbom.cdx.json introuvable." }
 } else {
@@ -117,7 +117,7 @@ try {
 } catch { $releaseExists = $false }
 
 if ($releaseExists) {
-  Write-Host "Release $tag existe déjà -> upload assets (clobber)" -ForegroundColor DarkYellow
+  Write-Host "Release $tag existe dÃ©jÃ  -> upload assets (clobber)" -ForegroundColor DarkYellow
   gh release upload $tag @($assets) --repo $Repo --clobber
 } else {
   $title = "$tag - Release aligned with main HEAD"
@@ -134,5 +134,6 @@ if ($Supersede) {
 }
 
 Write-Host ""
-Write-Host "OK ✅ Release prête: $tag  (HEAD=$head)" -ForegroundColor Green
+Write-Host "OK âœ… Release prÃªte: $tag  (HEAD=$head)" -ForegroundColor Green
 gh release view $tag --repo $Repo --json tagName,assets -q "{tag:.tagName, assets:[.assets[].name]}"
+
