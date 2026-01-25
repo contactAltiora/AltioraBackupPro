@@ -32,3 +32,13 @@ dist/
 
 public_key.b64
 
+
+
+# outils temporaires
+/tools/patch_*
+/tools/fix_*
+/tools/run_utf8.ps1
+/tools/replace_backup_cli_clean_v1.ps1
+$cli
+$core
+*tore --help*

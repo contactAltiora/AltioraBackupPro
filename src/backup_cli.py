@@ -1,99 +1,108 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-Script CLI Altiora Backup Pro.
-Interface ligne de commande complÃ¨te.
+Altiora Backup Pro - CLI
+Version propre (réparation indentation).
 """
 
 import argparse
 import sys
 import os
+
 from backup_core import BackupCore
 from backup_manager import BackupManager
+
 
 class AltioraCLI:
     def __init__(self):
         self.core = BackupCore()
         self.manager = BackupManager()
-    
-    def run(self):
+
+    def build_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="Altiora Backup Pro v1.0 - Solution de backup chiffrÃ©",
-            prog="altiora"
+            prog="altiora",
+            description="Altiora Backup Pro - Solution de backup chiffre (AES-256-GCM)",
         )
-        
-        
-parser.add_argument(
-    "--version",
-    action="version",
-    version="Altiora Backup Pro v1.0.10"
-)
-subparsers = parser.add_subparsers(dest="command", help="Commandes disponibles")
-        
-        # Backup command
-        backup_parser = subparsers.add_parser("backup", help="CrÃ©er un backup chiffrÃ©")
-        backup_parser.add_argument("source", help="Dossier source Ã  sauvegarder")
-        backup_parser.add_argument("output", help="Fichier de sortie (.altb)")
-        backup_parser.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
-        
-        # Restore command
-        restore_parser = subparsers.add_parser("restore", help="Restaurer un backup")
-        restore_parser.add_argument("backup_file", help="Fichier backup (.altb)")
-        restore_parser.add_argument("destination", help="Dossier de destination")
-        restore_parser.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
-        
-        # List command
-        list_parser = subparsers.add_parser("list", help="Lister tous les backups")
-        
-        # Stats command
-        stats_parser = subparsers.add_parser("stats", help="Afficher les statistiques")
-        
-        # Parse arguments
-        args = parser.parse_args()
-        
+
+        parser.add_argument(
+            "--version",
+            action="version",
+            version="Altiora Backup Pro v1.0.10",
+        )
+        parser.add_argument("--verbose", "-v", action="store_true", help="Affichage detaille")
+        parser.add_argument("--json", action="store_true", help="Sortie JSON (machine-readable)")
+
+        subparsers = parser.add_subparsers(dest="command", help="Commandes")
+
+        # backup
+        p_backup = subparsers.add_parser("backup", help="Creer une sauvegarde chiffre")
+        p_backup.add_argument("source", help="Dossier source a sauvegarder")
+        p_backup.add_argument("output", help="Fichier de sortie (.altb)")
+        p_backup.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
+
+        # restore
+        p_restore = subparsers.add_parser("restore", help="Restaurer une sauvegarde")
+        p_restore.add_argument("backup_file", help="Fichier backup (.altb)")
+        p_restore.add_argument("destination", help="Dossier de destination")
+        p_restore.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
+
+        # verify
+        p_verify = subparsers.add_parser("verify", help="Verifier mot de passe + integrite (sans restaurer)")
+        p_verify.add_argument("backup_file", help="Fichier backup (.altb)")
+        p_verify.add_argument("-p", "--password", required=True, help="Mot de passe de chiffrement")
+
+        # list
+        subparsers.add_parser("list", help="Lister tous les backups")
+
+        # stats
+        subparsers.add_parser("stats", help="Afficher les statistiques")
+
+        return parser
+
+    def run(self, argv=None) -> int:
+        parser = self.build_parser()
+        args = parser.parse_args(argv)
+
         if not args.command:
             parser.print_help()
             return 0
-        
-        if args.command == "backup":
-            print(f"ðŸ“¦ Backup de {args.source} vers {args.output}")
-            # Ici, ajouter la logique de backup rÃ©elle
-            return 0
-            
-        elif args.command == "restore":
-            print(f"ðŸ”„ Restauration de {args.backup_file} vers {args.destination}")
-            # Ici, ajouter la logique de restauration rÃ©elle
-            return 0
-            
-        elif args.command == "list":
-            print("ðŸ“‹ Liste des backups:")
-            backups = self.manager.list_backups()
-            for backup in backups:
-                print(f"  â€¢ {backup['name']} - {backup['date']}")
-            return 0
-            
-       elif args.command == "stats":
-    stats = self.manager.get_statistics()
-    print(f"ðŸ“Š Statistiques:")
-    
-    # Version robuste qui gÃ¨re les clÃ©s manquantes
-    total = stats.get('total', 0)
-    last_backup = stats.get('last_backup', 'Aucun')
-    total_size = stats.get('total_size_mb', 0)
-    
-    print(f" â€¢ Backups totaux: {stats.get('total', 0)}")
-    print(f"  â€¢ Dernier backup: {last_backup}")
-    print(f"  â€¢ Taille totale: {total_size:.2f} MB")
-    return 0
-            print(f"  â€¢ Dernier backup: {stats['last_backup']}")
-            print(f"  â€¢ Taille totale: {stats['total_size_mb']:.2f} MB")
-            return 0
-        
-        return 0
 
-def main():
-    """Point d'entrÃ©e pour la CLI."""
-    cli = AltioraCLI()
-    return cli.run()
+        # Dispatch
+        if args.command == "backup":
+            return int(self.core.backup(args.source, args.output, args.password))
+
+        if args.command == "restore":
+            return int(self.core.restore(args.backup_file, args.destination, args.password))
+
+        if args.command == "verify":
+            return int(self.core.verify(args.backup_file, args.password))
+
+        if args.command == "list":
+            backups = self.manager.list_backups()
+            for b in backups:
+                name = b.get("name", "")
+                date = b.get("date", "")
+                print(f"- {name} - {date}")
+            return 0
+
+        if args.command == "stats":
+            stats = self.manager.get_statistics()
+            total = stats.get("total", 0)
+            last_backup = stats.get("last_backup", "Aucun")
+            total_size = stats.get("total_size_mb", 0)
+            print("Statistiques:")
+            print(f"- Backups totaux: {total}")
+            print(f"- Dernier backup: {last_backup}")
+            print(f"- Taille totale: {total_size:.2f} MB")
+            return 0
+
+        # fallback
+        parser.print_help()
+        return 2
+
+
+def main() -> int:
+    return AltioraCLI().run()
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
