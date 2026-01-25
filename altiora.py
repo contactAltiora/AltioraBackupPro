@@ -327,35 +327,35 @@ Prix: 24,90€ • Garantie: 30 jours
         args = parser.parse_args()
 
         if args.command == "masterkey":
-        # Import local pour eviter de charger si non utilise
-        try:
-        from src.master_key import MasterKeyManager, MasterKeyError
-        except Exception:
-        from master_key import MasterKeyManager, MasterKeyError  # type: ignore
+            # Import local pour eviter de charger si non utilise
+            try:
+            from src.master_key import MasterKeyManager, MasterKeyError
+            except Exception:
+            from master_key import MasterKeyManager, MasterKeyError  # type: ignore
 
-        mgr = MasterKeyManager()
+            mgr = MasterKeyManager()
 
-        if getattr(args, "mk_command", None) == "status":
-        print("OK" if mgr.exists() else "NOT_INITIALIZED")
-        return 0
+            if getattr(args, "mk_command", None) == "status":
+            print("OK" if mgr.exists() else "NOT_INITIALIZED")
+            return 0
 
-        if args.mk_command == "init":
-        try:
-        p = mgr.init(args.password)
-        print(str(p))
-        return 0
-        except MasterKeyError as e:
-        print(f"ERROR: {e}")
-        return 2
+            if args.mk_command == "init":
+            try:
+            p = mgr.init(args.password)
+            print(str(p))
+            return 0
+            except MasterKeyError as e:
+            print(f"ERROR: {e}")
+            return 2
 
-        if args.mk_command == "rotate":
-        try:
-        mgr.rotate(args.old, args.new)
-        print("OK")
-        return 0
-        except MasterKeyError as e:
-        print(f"ERROR: {e}")
-        return 2
+            if args.mk_command == "rotate":
+            try:
+            mgr.rotate(args.old, args.new)
+            print("OK")
+            return 0
+            except MasterKeyError as e:
+            print(f"ERROR: {e}")
+            return 2
 
         parser.print_help()
         return 2
