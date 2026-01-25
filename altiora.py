@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Altiora Backup Pro - Solution de backup chiffré professionnelle
 CLI (backup / verify / restore / list / stats)
@@ -286,6 +286,17 @@ Prix: 24,90€ • Garantie: 30 jours
 )
     subparsers = parser.add_subparsers(dest="command", title="Commandes", help="Commande à exécuter")
 
+    # masterkey
+    p_mk = subparsers.add_parser("masterkey", help="Gerer la Master Key")
+    mk_sub = p_mk.add_subparsers(dest="mk_command", help="Actions Master Key")
+
+    mk_sub.add_parser("status", help="Verifier si la Master Key est initialisee")
+    mk_init = mk_sub.add_parser("init", help="Initialiser la Master Key (creer master_key.json)")
+    mk_init.add_argument("-p", "--password", required=True, help="Mot de passe Master Key")
+
+    mk_rot = mk_sub.add_parser("rotate", help="Changer le mot de passe (re-chiffre la master key)")
+    mk_rot.add_argument("--old", required=True, help="Ancien mot de passe")
+    mk_rot.add_argument("--new", required=True, help="Nouveau mot de passe")
     # backup
     p_backup = subparsers.add_parser("backup", help="Créer une sauvegarde chiffrée", parents=[parent])
     p_backup.add_argument("source", help="Fichier ou dossier à sauvegarder")
@@ -311,12 +322,49 @@ Prix: 24,90€ • Garantie: 30 jours
     subparsers.add_parser("stats", help="Afficher les statistiques", parents=[parent])
 
     if len(sys.argv) == 1:
+
+    try:
+        args = parser.parse_args()
+
+        if args.command == "masterkey":
+        # Import local pour eviter de charger si non utilise
+        try:
+        from src.master_key import MasterKeyManager, MasterKeyError
+        except Exception:
+        from master_key import MasterKeyManager, MasterKeyError  # type: ignore
+
+        mgr = MasterKeyManager()
+
+        if getattr(args, "mk_command", None) == "status":
+        print("OK" if mgr.exists() else "NOT_INITIALIZED")
+        return 0
+
+        if args.mk_command == "init":
+        try:
+        p = mgr.init(args.password)
+        print(str(p))
+        return 0
+        except MasterKeyError as e:
+        print(f"ERROR: {e}")
+        return 2
+
+        if args.mk_command == "rotate":
+        try:
+        mgr.rotate(args.old, args.new)
+        print("OK")
+        return 0
+        except MasterKeyError as e:
+        print(f"ERROR: {e}")
+        return 2
+
+        parser.print_help()
+        return 2
+
         parser.print_help()
         # pas de footer en mode help “normal”
         return 0
 
-    try:
-        args = parser.parse_args()
+
     except SystemExit as e:
         # argparse => SystemExit(0) pour --help ; sinon souvent SystemExit(2) pour erreurs CLI
         raw = getattr(e, "code", 0)
@@ -507,10 +555,6 @@ Prix: 24,90€ • Garantie: 30 jours
             _safe_print(f"   Dernière sauvegarde: {stats.get('last_backup', 'Aucun')}")
         print_footer(ok=True)
         return 0
-
-    parser.print_help()
-    return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
