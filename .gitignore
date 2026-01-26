@@ -42,3 +42,13 @@ public_key.b64
 $cli
 $core
 *tore --help*
+
+# Generated / local artifacts
+backups.json
+*.altb
+altiora.py.bak_*
+src/*.py.bak_*
+tools/*.py
+tools/patch_*.ps1
+tools/patch_*.py
+
