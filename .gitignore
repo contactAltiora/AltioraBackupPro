@@ -52,3 +52,19 @@ tools/*.py
 tools/patch_*.ps1
 tools/patch_*.py
 
+
+# ---- ABP ignore (outputs & restore) ----
+_out/*
+!_out/.gitkeep
+
+_restore/*
+!_restore/.gitkeep
+
+# golden snapshots
+altiora.py.GOLDEN_*
+
+# ignore patch scripts but keep tracked runners/audit
+tools/patch_*.ps1
+!tools/patch_runner.ps1
+!tools/patch_audit_baseline_v2.ps1
+# ---- /ABP ignore ----
