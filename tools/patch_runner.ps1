@@ -1,4 +1,4 @@
-﻿param(
+param(
   [Parameter(Mandatory=$true)]
   [string]$Script,
 
@@ -78,6 +78,19 @@ if ($files.Count -gt 0) {
         files         = $files
       }
       $newLock | ConvertTo-Json -Depth 8 | Out-File -FilePath $altioraLockPath -Encoding UTF8
+# ABP: patch_runner executes patch scripts (v5)
+      # --- ABP v5: exécution réelle du script patch (avant UpdateBaselineLock) ---
+      if ($Script) {
+        $p = (Resolve-Path -LiteralPath $Script).ProviderPath
+        Write-Host "RUN PATCH: $p"
+        $env:ALTIORA_PATCH = "1"
+        & $p
+        $code = $LASTEXITCODE
+        if ($code -ne 0) {
+          throw "Patch script a échoué (exit=$code): $p"
+        }
+        Write-Host "PATCH OK: $p"
+      }
       Write-Host "BASELINE LOCK: updated -> $altioraLockPath"
     } else {
 

@@ -1,3 +1,12 @@
+﻿# ABP_ITER_AUTO_V49C: applied (no-op, --iterations already present)  # ABP_REMOVE_PRICE_BANNER_V59
+# ABP_ITER_AUTO_V49B: applied
+# ABP_SYS_PATH_V47B: applied
+# ABP_SYS_PATH_V47: applied
+# ABP_JSON_ONLY_V44B: applied
+# ABP: disable last global help/return v24
+# ABP: fix dispatch remove global help/return v22d
+# ABP: fix subparsers dest command v21
+# ABP: force args.json when json_mode v15c
 #!/usr/bin/env python3
 """
 Altiora Backup Pro - Solution de backup chiffré professionnelle
@@ -8,6 +17,55 @@ import argparse
 import json
 import os
 import sys
+
+# ABP_ITER_AUTO_V49B: header-based iterations autodetect (legacy backups)
+def _abp_read_iter_from_altb_header(path: str) -> int:
+    try:
+        with open(path, "rb") as f:
+            h = f.read(12)
+        if len(h) < 12:
+            return 0
+        if h[0:8] != b"ALTBKUP1":
+            return 0
+        return int.from_bytes(h[10:12], "big", signed=False)
+    except Exception:
+        return 0
+
+
+# ABP_SYS_PATH_V47: ensure src/ is on sys.path so 'import backup_core' always works
+try:
+    from pathlib import Path as _ABP_Path
+    _ABP_ROOT = _ABP_Path(__file__).resolve().parent
+    _ABP_SRC  = _ABP_ROOT / 'src'
+    _ABP_SRC_S = str(_ABP_SRC)
+    if _ABP_SRC_S not in sys.path:
+        sys.path.append(_ABP_SRC_S)  # ABP_SYS_PATH_V47B: append to avoid shadowing stdlib (e.g., logging)
+except Exception:
+    pass
+
+
+# ABP_JSON_ONLY_V44B: JSON-only mode (stdout filter + logging off) + --version --json
+ABP_JSON_MODE_EARLY = ('--json' in sys.argv)
+if ABP_JSON_MODE_EARLY:
+    # 1) Disable logging noise in JSON mode
+    import logging as _abp_logging
+    _abp_logging.disable(_abp_logging.CRITICAL)
+
+    # 2) Keep ONLY JSON objects/arrays on stdout (anything else dropped)
+    _abp__stdout_write = sys.stdout.write
+    def _abp_json_only_write(s):
+        t = str(s)
+        u = t.lstrip()
+        if u.startswith('{') or u.startswith('['):
+            return _abp__stdout_write(t)
+        return 0
+    sys.stdout.write = _abp_json_only_write  # type: ignore
+
+    # 3) Special-case: --version --json => emit pure JSON and exit early
+    if ('--version' in sys.argv) or ('-V' in sys.argv):
+        sys.stdout.write('{"ok": true, "version": "Altiora Backup Pro v1.0.12"}\n')
+        raise SystemExit(0)
+
 import time
 from typing import Any, Dict, List
 
@@ -47,7 +105,7 @@ def print_banner() -> None:
 ============================================================
 ALTIORA BACKUP PRO
 Chiffrement AES-256-GCM (standard industriel)
-Prix: 24,90€ • Garantie: 30 jours
+
 ============================================================
 """
     _safe_print(banner)
@@ -56,11 +114,11 @@ Prix: 24,90€ • Garantie: 30 jours
 def print_footer(ok: bool = True) -> None:
     footer = """
 ============================================================
-✅ Succès — Support: garantie 30 jours — Prix: 24,90€
+✅ Succès — Support: garantie 30 jours
 ============================================================
 """ if ok else """
 ============================================================
-❌ Échec — Support: garantie 30 jours — Prix: 24,90€
+❌ Échec — Support: garantie 30 jours
 ============================================================
 """
     _safe_print(footer)
@@ -202,7 +260,8 @@ def main() -> int:
         if json_mode:
             _emit_json({"ok": False, "error": "missing_dependencies"})
             return 1
-        print_footer(ok=False)
+        if not json_mode and not getattr(args,"json",False):
+            print_footer(ok=False)
         return 1
 
     # Logging (optionnel)
@@ -262,7 +321,8 @@ def main() -> int:
         _safe_print(f"   ❌ Erreur d'initialisation: {type(e).__name__}: {e}")
         if logger:
             logger.exception("Init error")
-        print_footer(ok=False)
+        if not json_mode and not getattr(args,"json",False):
+            print_footer(ok=False)
         return 1
 
     parent = argparse.ArgumentParser(add_help=False)
@@ -279,13 +339,12 @@ def main() -> int:
     description="""Altiora Backup Pro - Solution de backup chiffré (AES-256-GCM)
 
 Chiffrement AES-256-GCM (standard industriel)
-Prix: 24,90€ • Garantie: 30 jours
+
 """,
     formatter_class=argparse.RawDescriptionHelpFormatter,
     parents=[parent],
 )
-    subparsers = parser.add_subparsers(dest="command", title="Commandes", help="Commande à exécuter")
-
+    subparsers = parser.add_subparsers(dest="command", title="Commandes", help="Commande à exécuter", required=True)
     # masterkey
     p_mk = subparsers.add_parser("masterkey", help="Gerer la Master Key")
     mk_sub = p_mk.add_subparsers(dest="mk_command", help="Actions Master Key")
@@ -328,7 +387,13 @@ Prix: 24,90€ • Garantie: 30 jours
 
     try:
         args = parser.parse_args()
-
+        # ABP v15c: en mode JSON (détecté via sys.argv), on force args.json=True
+        # afin que les branches 'if args.json:' dispatchent correctement.
+        if json_mode:
+            try:
+                setattr(args, "json", True)
+            except Exception:
+                pass
         if args.command == "masterkey":
             try:
                 from src.master_key import MasterKeyManager, MasterKeyError
@@ -363,12 +428,12 @@ Prix: 24,90€ • Garantie: 30 jours
             return 2
 
 
-        parser.print_help()
-        return 2
+        # ABP: fix dispatch remove global help/return v22d
+        # ABP v22d: suppression du help/return global prématuré (dispatch continue)
 
-        parser.print_help()
+        # ABP: disable last global help/return v24
         # pas de footer en mode help “normal”
-        return 0
+        # ABP v24: (ancien: return 0/2) -> dispatch continue
 
 
     except SystemExit as e:
@@ -383,7 +448,8 @@ Prix: 24,90€ • Garantie: 30 jours
             return 0
 
         if not json_mode:
-            print_footer(ok=False)
+            if not json_mode and not getattr(args,"json",False):
+                print_footer(ok=False)
         return code
 
     start_time = time.time()
@@ -423,7 +489,8 @@ Prix: 24,90€ • Garantie: 30 jours
             _safe_print(f"❌ ERREUR BACKUP: {type(e).__name__}: {e}")
             if logger:
                 logger.exception("backup exception")
-            print_footer(ok=False)
+            if not json_mode and not getattr(args,"json",False):
+                print_footer(ok=False)
             return 1
 
         if args.json:
@@ -447,7 +514,8 @@ Prix: 24,90€ • Garantie: 30 jours
             _safe_print(f"❌ ERREUR VERIFY: {type(e).__name__}: {e}")
             if logger:
                 logger.exception("verify exception")
-            print_footer(ok=False)
+            if not json_mode and not getattr(args,"json",False):
+                print_footer(ok=False)
             return 1
 
         if args.json:
@@ -456,11 +524,13 @@ Prix: 24,90€ • Garantie: 30 jours
 
         if ok:
             _safe_print("✅ BACKUP VALIDE (mot de passe + authentification OK)")
-            print_footer(ok=True)
+            if not json_mode and not getattr(args,"json",False):
+                print_footer(ok=True)
             return 0
 
         _safe_print("❌ BACKUP INVALIDE (mot de passe incorrect ou fichier corrompu)")
-        print_footer(ok=False)
+        if not json_mode and not getattr(args,"json",False):
+            print_footer(ok=False)
         return 1
 
     if args.command == "restore":
@@ -485,7 +555,8 @@ Prix: 24,90€ • Garantie: 30 jours
                 if len(collisions) > 20:
                     _safe_print(f"  ... +{len(collisions)-20} autres")
                 _safe_print("Utilisez --force pour autoriser l’écrasement.")
-                print_footer(ok=False)
+                if not json_mode and not getattr(args,"json",False):
+                    print_footer(ok=False)
                 return 1
 
         try:
@@ -501,7 +572,8 @@ Prix: 24,90€ • Garantie: 30 jours
             _safe_print(f"❌ ERREUR RESTORE: {type(e).__name__}: {e}")
             if logger:
                 logger.exception("restore exception")
-            print_footer(ok=False)
+            if not json_mode and not getattr(args,"json",False):
+                print_footer(ok=False)
             return 1
 
         if args.json:
@@ -530,7 +602,8 @@ Prix: 24,90€ • Garantie: 30 jours
                     ts = _backup_timestamp(backup)
                     line += f" | id={bid} | source={src} | date={ts}"
                 _safe_print(line)
-        print_footer(ok=True)
+        if not json_mode and not getattr(args,"json",False):
+            print_footer(ok=True)
         return 0
 
     if args.command == "stats":
@@ -559,11 +632,14 @@ Prix: 24,90€ • Garantie: 30 jours
             _safe_print(f"   Fichiers moyens: {stats.get('avg_files', 0):.0f}")
             _safe_print(f"   Durée moyenne: {stats.get('avg_duration', 0):.1f}s")
             _safe_print(f"   Dernière sauvegarde: {stats.get('last_backup', 'Aucun')}")
-        print_footer(ok=True)
+        if not json_mode and not getattr(args,"json",False):
+            print_footer(ok=True)
         return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
 
 
 
