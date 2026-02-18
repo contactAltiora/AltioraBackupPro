@@ -24,3 +24,8 @@ Desktop.ini
 # restore artifacts
 _restore/
 
+# python bytecode
+__pycache__/
+*.pyc
+*.pyo
+src/__pycache__/
