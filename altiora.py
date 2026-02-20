@@ -114,11 +114,11 @@ Chiffrement AES-256-GCM (standard industriel)
 def print_footer(ok: bool = True) -> None:
     footer = """
 ============================================================
-✅ Succès — Support: garantie 30 jours
+✅ Succès — Support inclus : 30 jours
 ============================================================
 """ if ok else """
 ============================================================
-❌ Échec — Support: garantie 30 jours
+❌ Échec — Support inclus : 30 jours
 ============================================================
 """
     _safe_print(footer)
@@ -386,6 +386,7 @@ Chiffrement AES-256-GCM (standard industriel)
 
 
     try:
+        args = None
         args = parser.parse_args()
         # ABP v15c: en mode JSON (détecté via sys.argv), on force args.json=True
         # afin que les branches 'if args.json:' dispatchent correctement.
@@ -638,6 +639,7 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
 
