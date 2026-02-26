@@ -18,6 +18,32 @@ import argparse
 import json
 import os
 
+
+# --- RUNTIME PROTECTION HOOK (fail-closed) ---
+def _abp_runtime_verify_or_die():
+    import os, sys, subprocess
+    if os.environ.get('ALTIORA_PROTECTED','0') != '1':
+        return
+    # Selftest mode bypass for release pipeline only
+    if os.environ.get('ABP_SELFTEST_MODE','0') == '1':
+        return
+    root = os.path.dirname(os.path.abspath(__file__))
+    pub  = os.path.join(root, 'keys', 'altiora_public_key.pem')
+    state = os.path.join(root, 'STATE.md')
+    verifier = os.path.join(root, 'tools', 'verify_signature.py')
+    if (not os.path.exists(pub)) or (not os.path.exists(state)) or (not os.path.exists(verifier)):
+        print('FATAL: protected mode requires keys/altiora_public_key.pem + STATE.md + tools/verify_signature.py')
+        sys.exit(101)
+    cmd = [sys.executable, verifier, pub, state]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if (r.returncode != 0) or ('SIGNATURE VALID' not in (r.stdout or '')):
+        print('FATAL: signature verification failed for STATE.md')
+        if r.stdout: print(r.stdout.strip())
+        if r.stderr: print(r.stderr.strip())
+        sys.exit(102)
+
+# Call protection hook as early as possible
+_abp_runtime_verify_or_die()
 # ABP_SELFTEST_MODE: bypass protected-mode tripwire during selftests (deterministic patch)
 if os.environ.get("ABP_SELFTEST_MODE") == "1":
     os.environ["ALTIORA_PROTECTED"] = "0"
@@ -653,6 +679,7 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
 
