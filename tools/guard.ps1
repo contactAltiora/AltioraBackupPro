@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference="Stop"
+$ErrorActionPreference="Stop"
 Set-Location "C:\Dev\AltioraBackupPro"
 
 git restore --source=HEAD --worktree --staged .\altiora.py | Out-Null

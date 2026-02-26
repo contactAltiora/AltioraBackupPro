@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference="Stop"
+$ErrorActionPreference="Stop"
 Set-Location "C:\Dev\AltioraBackupPro"
 
 py -m py_compile .\altiora.py

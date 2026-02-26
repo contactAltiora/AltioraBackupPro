@@ -1,4 +1,5 @@
-﻿import os, json, base64
+# ABP_ASCII_OUTPUT_V3
+import os, json, base64
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 

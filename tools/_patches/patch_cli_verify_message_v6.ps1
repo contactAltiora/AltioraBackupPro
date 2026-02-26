@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $root = "C:\Dev\AltioraBackupPro"
 Set-Location $root

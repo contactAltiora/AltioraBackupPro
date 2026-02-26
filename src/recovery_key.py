@@ -1,4 +1,5 @@
-﻿# -*- coding: utf-8 -*-
+# ABP_ASCII_OUTPUT_V3
+# -*- coding: utf-8 -*-
 import base64
 import re
 import secrets

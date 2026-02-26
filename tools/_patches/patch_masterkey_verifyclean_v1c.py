@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import re
 
 CORE = Path(r"C:\Dev\AltioraBackupPro\src\backup_core.py")

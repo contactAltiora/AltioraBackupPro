@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import re
 
 CLI = Path(r"C:\Dev\AltioraBackupPro\altiora.py")

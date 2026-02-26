@@ -1,4 +1,4 @@
-﻿$root = "C:\Dev\AltioraBackupPro"
+$root = "C:\Dev\AltioraBackupPro"
 $dst  = Join-Path $root "src\master_key.py"
 
 $py = @"

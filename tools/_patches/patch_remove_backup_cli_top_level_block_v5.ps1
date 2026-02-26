@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
+$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
 $lines = Get-Content $path -Encoding UTF8
 
 # 1) trouver le début: une ligne EXACTEMENT au niveau 0 qui commence par "parser.add_argument("

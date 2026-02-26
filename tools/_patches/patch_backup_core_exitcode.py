@@ -1,4 +1,4 @@
-﻿import re
+import re
 from pathlib import Path
 
 BC = Path(__file__).resolve().parents[1] / "src" / "backup_core.py"

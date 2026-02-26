@@ -1,4 +1,4 @@
-﻿# tools\patch_audit_baseline_v1.ps1
+# tools\patch_audit_baseline_v1.ps1
 # Patch SAFE: audit baseline (ne modifie rien)
 # Exécution UNIQUEMENT via runner (ALTIORA_PATCH=1)
 
