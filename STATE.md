@@ -1,15 +1,15 @@
 # Altiora Backup Pro â€” STATE
 
-Date: 2026-02-26 22:29:58
+Date: 2026-02-27 00:03:05
 Status: STABLE
 
-Version: v1.0.13
+Version: v1.0.14
 
 Release ZIP:
-C:\Dev\AltioraBackupPro\_out\releases\AltioraBackupPro_v1.0.13_release.zip
+C:\Dev\AltioraBackupPro\_out\releases\AltioraBackupPro_v1.0.14_release.zip
 
 SHA256:
-2BA75C3C0D410EAFCA2BBD6D0D56C62907F3191F8AFB6A099977A9CEE2581BEC
+BF5FEA95817B6AA02D5DEC45B4FBF0CE4FDEC54FDEEA31FC03A0CAB949E02DCC
 
 Repo:
 C:\Dev\AltioraBackupPro

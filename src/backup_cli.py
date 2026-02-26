@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # ABP_ASCII_OUTPUT_V3
 """
 Altiora Backup Pro - CLI
@@ -27,7 +27,7 @@ class AltioraCLI:
         parser.add_argument(
             "--version",
             action="version",
-            version="Altiora Backup Pro v1.0.10",
+            version="Altiora Backup Pro v1.0.14",
         )
         parser.add_argument("--verbose", "-v", action="store_true", help="Affichage detaille")
         parser.add_argument("--json", action="store_true", help="Sortie JSON (machine-readable)")
