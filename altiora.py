@@ -28,8 +28,11 @@ def _abp_runtime_verify_or_die():
     # Selftest mode bypass for release pipeline only
     if os.environ.get('ABP_SELFTEST_MODE','0') == '1':
         return
-
-    root = os.path.dirname(os.path.abspath(__file__))
+    # Determine application root (supports PyInstaller onefile EXE)
+    if getattr(sys, 'frozen', False):
+        root = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        root = os.path.dirname(os.path.abspath(__file__))
     pub      = os.path.join(root, 'keys', 'altiora_public_key.pem')
     state    = os.path.join(root, 'STATE.md')
     state_h  = os.path.join(root, 'STATE.md.sha256')
@@ -129,8 +132,8 @@ except Exception:
 # ABP_JSON_ONLY_V44B: JSON-only mode (stdout filter + logging off) + --version --json
 
 # Altiora Backup Pro - single source of truth for CLI version
-VERSION_STR = "Altiora Backup Pro v1.0.14"
-__version__ = "1.0.14"
+VERSION_STR = "Altiora Backup Pro v1.0.15"
+__version__ = "1.0.15"
 ABP_JSON_MODE_EARLY = ('--json' in sys.argv)
 if ABP_JSON_MODE_EARLY:
     # 1) Disable logging noise in JSON mode
@@ -149,7 +152,7 @@ if ABP_JSON_MODE_EARLY:
 
     # 3) Special-case: --version --json => emit pure JSON and exit early
     if ('--version' in sys.argv) or ('-V' in sys.argv):
-        sys.stdout.write('{"ok": true, "version": "Altiora Backup Pro v1.0.14"}\n')
+        sys.stdout.write('{"ok": true, "version": "Altiora Backup Pro v1.0.15"}\n')
         raise SystemExit(0)
 
 # ABP_EARLY_VERSION_V10C2: --version/-V without banner/init (non-JSON)
@@ -730,6 +733,8 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
 
 
 
