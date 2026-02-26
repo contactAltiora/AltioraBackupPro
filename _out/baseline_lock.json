@@ -1,0 +1,11 @@
+﻿{
+    "timestamp_utc":  "2026-02-26T22:25:36.8654917Z",
+    "root":  "C:\\Dev\\AltioraBackupPro",
+    "files":  {
+                  "altiora.py":  "467CCC6A7C428F59380072289B5D71176EEB5CFE700692A02920780D7A964B59",
+                  "src\\backup_core.py":  "AC90C0E1BC7E35B8CDF2FA2EA9E8963A153299C948F82416F7B1ADCE7F01A7D2",
+                  "src\\master_key.py":  "47943286051DF029A25BE49D7ADED12E8190666CA7218D9CFC645EADF1301E16",
+                  "tools\\patch_runner.ps1":  "A1AB0C9188CDCA415366CA0B58075CC9F843B706334A09DA8CB3F29E81E1EE59",
+                  "tools\\patch_audit_baseline_v2.ps1":  "5E13A89D5E179E5E5AA3EE128AD8D2E78DF1C05D4302C086983651453244F0E0"
+              }
+}
