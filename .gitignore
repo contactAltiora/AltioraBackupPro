@@ -29,7 +29,6 @@ __pycache__/
 *.pyc
 *.pyo
 src/__pycache__/
-
 # --- Secrets / signing ---
 keys/
 *.pem
@@ -42,4 +41,3 @@ STATE.md.sha256
 _fixtures/
 backups.json
 $target
-
