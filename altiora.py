@@ -130,6 +130,7 @@ except Exception:
 
 # Altiora Backup Pro - single source of truth for CLI version
 VERSION_STR = "Altiora Backup Pro v1.0.14"
+__version__ = "1.0.14"
 ABP_JSON_MODE_EARLY = ('--json' in sys.argv)
 if ABP_JSON_MODE_EARLY:
     # 1) Disable logging noise in JSON mode
@@ -729,6 +730,8 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
 
 
 
