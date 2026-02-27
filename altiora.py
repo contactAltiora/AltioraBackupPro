@@ -28,11 +28,13 @@ def _abp_runtime_verify_or_die():
     # Selftest mode bypass for release pipeline only
     if os.environ.get('ABP_SELFTEST_MODE','0') == '1':
         return
+
     # Determine application root (supports PyInstaller onefile EXE)
     if getattr(sys, 'frozen', False):
         root = os.path.dirname(os.path.abspath(sys.executable))
     else:
         root = os.path.dirname(os.path.abspath(__file__))
+
     pub      = os.path.join(root, 'keys', 'altiora_public_key.pem')
     state    = os.path.join(root, 'STATE.md')
     state_h  = os.path.join(root, 'STATE.md.sha256')
@@ -63,11 +65,12 @@ def _abp_runtime_verify_or_die():
             print('FATAL: STATE.md sha256 mismatch')
             print('EXPECTED:', expected)
             print('GOT     :', got)
-            sys.exit(103)    # 3) Release ZIP sha256 verification (if release sha exists)
+            sys.exit(103)
+
+    # 3) Release ZIP sha256 verification (if release sha exists)
     # Version-agnostic: if release artifacts for current version exist, verify them.
     def _abp_get_version_safe():
         try:
-            # Prefer src/__init__.py convention if present in project
             v = globals().get('__version__')
             if isinstance(v, str) and v.strip():
                 return v.strip()
@@ -82,7 +85,6 @@ def _abp_runtime_verify_or_die():
         rel_sha = os.path.join(root, '_out', 'releases', f'AltioraBackupPro_v{ver}_release.sha256')
         rel_zip = os.path.join(root, '_out', 'releases', f'AltioraBackupPro_v{ver}_release.zip')
 
-    # fallback: do nothing if versioned artifacts are not found
     if rel_sha and rel_zip and os.path.exists(rel_sha) and os.path.exists(rel_zip):
         expected = open(rel_sha, 'r', encoding='utf-8').read().strip().split()[0].upper()
         h = hashlib.sha256()
@@ -95,6 +97,7 @@ def _abp_runtime_verify_or_die():
             print('EXPECTED:', expected)
             print('GOT     :', got)
             sys.exit(104)
+
 # Call protection hook as early as possible
 _abp_runtime_verify_or_die()
 # ABP_SELFTEST_MODE: bypass protected-mode tripwire during selftests (deterministic patch)
@@ -733,6 +736,9 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
 
 
 

@@ -6,7 +6,7 @@ $text = Get-Content -LiteralPath $target -Raw -Encoding UTF8
 
 if($text -notmatch "_abp_runtime_verify_or_die"){ throw "Hook introuvable (abort)" }
 
-# Replace only the root resolution line block (bounded + safe)
+# Replace the root resolution line inside the hook (bounded: only first occurrence)
 $pattern = "(?m)^\s*root\s*=\s*os\.path\.dirname\(os\.path\.abspath\(__file__\)\)\s*$"
 if($text -notmatch $pattern){ throw "Ligne root=... introuvable (abort)" }
 
