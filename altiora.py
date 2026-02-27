@@ -21,7 +21,7 @@ import os
 
 # --- RUNTIME PROTECTION HOOK (fail-closed) ---
 def _abp_runtime_verify_or_die():
-    import os, sys, subprocess, hashlib
+    import os, sys, hashlib
 
     if os.environ.get('ALTIORA_PROTECTED','0') != '1':
         return
@@ -35,32 +35,59 @@ def _abp_runtime_verify_or_die():
     else:
         root = os.path.dirname(os.path.abspath(__file__))
 
-    pub      = os.path.join(root, 'keys', 'altiora_public_key.pem')
+    pub_pem  = os.path.join(root, 'keys', 'altiora_public_key.pem')
     state    = os.path.join(root, 'STATE.md')
+    state_sig= os.path.join(root, 'STATE.md.sig')
     state_h  = os.path.join(root, 'STATE.md.sha256')
-    verifier = os.path.join(root, 'tools', 'verify_signature.py')
 
-    if (not os.path.exists(pub)) or (not os.path.exists(state)) or (not os.path.exists(verifier)):
-        print('FATAL: protected mode requires keys/altiora_public_key.pem + STATE.md + tools/verify_signature.py')
+    if (not os.path.exists(pub_pem)) or (not os.path.exists(state)) or (not os.path.exists(state_sig)):
+        print('FATAL: protected mode requires keys/altiora_public_key.pem + STATE.md + STATE.md.sig')
         sys.exit(101)
 
+    def _sha256_file(p):
+        h = hashlib.sha256()
+        with open(p, 'rb') as f:
+            for chunk in iter(lambda: f.read(1024*1024), b''):
+                h.update(chunk)
+        return h.hexdigest().upper()
+
+    def _read_expected_sha(p):
+        # accept "HASH  filename" or just "HASH"
+        s = open(p, 'r', encoding='utf-8').read().strip()
+        if not s:
+            return ""
+        return s.split()[0].upper()
+
+    def _verify_ed25519(pub_pem_path, file_path, sig_path):
+        # inline verify: avoids subprocess recursion in PyInstaller EXE
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+        pub_bytes = open(pub_pem_path, 'rb').read()
+        pub = serialization.load_pem_public_key(pub_bytes)
+        if not isinstance(pub, Ed25519PublicKey):
+            raise ValueError("Public key is not Ed25519")
+
+        data = open(file_path, 'rb').read()
+        sig  = open(sig_path, 'rb').read()
+        pub.verify(sig, data)
+        return True
+
     # 1) Signature verification of STATE.md
-    cmd = [sys.executable, verifier, pub, state]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if (r.returncode != 0) or ('SIGNATURE VALID' not in (r.stdout or '')):
+    try:
+        _verify_ed25519(pub_pem, state, state_sig)
+    except Exception as e:
         print('FATAL: signature verification failed for STATE.md')
-        if r.stdout: print(r.stdout.strip())
-        if r.stderr: print(r.stderr.strip())
+        try:
+            print(str(e))
+        except Exception:
+            pass
         sys.exit(102)
 
     # 2) SHA256 verification of STATE.md (if STATE.md.sha256 exists)
     if os.path.exists(state_h):
-        expected = open(state_h, 'r', encoding='utf-8').read().strip().split()[0].upper()
-        h = hashlib.sha256()
-        with open(state, 'rb') as f:
-            for chunk in iter(lambda: f.read(1024*1024), b''):
-                h.update(chunk)
-        got = h.hexdigest().upper()
+        expected = _read_expected_sha(state_h)
+        got = _sha256_file(state)
         if expected and got != expected:
             print('FATAL: STATE.md sha256 mismatch')
             print('EXPECTED:', expected)
@@ -68,7 +95,6 @@ def _abp_runtime_verify_or_die():
             sys.exit(103)
 
     # 3) Release ZIP sha256 verification (if release sha exists)
-    # Version-agnostic: if release artifacts for current version exist, verify them.
     def _abp_get_version_safe():
         try:
             v = globals().get('__version__')
@@ -79,24 +105,17 @@ def _abp_runtime_verify_or_die():
         return None
 
     ver = _abp_get_version_safe()
-    rel_sha = None
-    rel_zip = None
     if ver:
         rel_sha = os.path.join(root, '_out', 'releases', f'AltioraBackupPro_v{ver}_release.sha256')
         rel_zip = os.path.join(root, '_out', 'releases', f'AltioraBackupPro_v{ver}_release.zip')
-
-    if rel_sha and rel_zip and os.path.exists(rel_sha) and os.path.exists(rel_zip):
-        expected = open(rel_sha, 'r', encoding='utf-8').read().strip().split()[0].upper()
-        h = hashlib.sha256()
-        with open(rel_zip, 'rb') as f:
-            for chunk in iter(lambda: f.read(1024*1024), b''):
-                h.update(chunk)
-        got = h.hexdigest().upper()
-        if expected and got != expected:
-            print('FATAL: release ZIP sha256 mismatch')
-            print('EXPECTED:', expected)
-            print('GOT     :', got)
-            sys.exit(104)
+        if os.path.exists(rel_sha) and os.path.exists(rel_zip):
+            expected = _read_expected_sha(rel_sha)
+            got = _sha256_file(rel_zip)
+            if expected and got != expected:
+                print('FATAL: release ZIP sha256 mismatch')
+                print('EXPECTED:', expected)
+                print('GOT     :', got)
+                sys.exit(104)
 
 # Call protection hook as early as possible
 _abp_runtime_verify_or_die()
@@ -736,6 +755,7 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
 
