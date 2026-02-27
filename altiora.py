@@ -154,8 +154,8 @@ except Exception:
 # ABP_JSON_ONLY_V44B: JSON-only mode (stdout filter + logging off) + --version --json
 
 # Altiora Backup Pro - single source of truth for CLI version
-VERSION_STR = "Altiora Backup Pro v1.0.15"
-__version__ = "1.0.15"
+VERSION_STR = "Altiora Backup Pro v1.0.16"
+__version__ = "1.0.16"
 ABP_JSON_MODE_EARLY = ('--json' in sys.argv)
 if ABP_JSON_MODE_EARLY:
     # 1) Disable logging noise in JSON mode
@@ -174,7 +174,7 @@ if ABP_JSON_MODE_EARLY:
 
     # 3) Special-case: --version --json => emit pure JSON and exit early
     if ('--version' in sys.argv) or ('-V' in sys.argv):
-        sys.stdout.write('{"ok": true, "version": "Altiora Backup Pro v1.0.15"}\n')
+        sys.stdout.write('{"ok": true, "version": "Altiora Backup Pro v1.0.16"}\n')
         raise SystemExit(0)
 
 # ABP_EARLY_VERSION_V10C2: --version/-V without banner/init (non-JSON)
@@ -755,6 +755,7 @@ Chiffrement AES-256-GCM (standard industriel)
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
 

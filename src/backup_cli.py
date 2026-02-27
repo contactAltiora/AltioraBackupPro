@@ -27,7 +27,7 @@ class AltioraCLI:
         parser.add_argument(
             "--version",
             action="version",
-            version="Altiora Backup Pro v1.0.14",
+            version="Altiora Backup Pro v1.0.16",
         )
         parser.add_argument("--verbose", "-v", action="store_true", help="Affichage detaille")
         parser.add_argument("--json", action="store_true", help="Sortie JSON (machine-readable)")
@@ -107,3 +107,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
