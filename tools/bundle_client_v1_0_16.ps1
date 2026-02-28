@@ -117,17 +117,55 @@ Write-Host "OK BUNDLE ZIP : $outZip"
 Write-Host "OK BUNDLE SHA : $outSha"
 Write-Host "SHA256        : $h"
 
-# ---- Quick isolated test
+# ---- Quick isolated test (STRICT)
 $testDir = Join-Path $env:TEMP "ABP_CLIENT_TEST_1016_OK"
 Remove-Item $testDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $testDir | Out-Null
+
 Expand-Archive -LiteralPath $outZip -DestinationPath $testDir -Force
 
-Push-Location $testDir
-$env:ALTIORA_PROTECTED="1"
-Write-Host "TEST: running EXE from isolated dir: $testDir"
-.\AltioraBackupPro.exe --version
-.\AltioraBackupPro.exe --help
-Pop-Location
+# Defender/AV can delete the EXE after extraction -> fail fast if missing
+$exeInTest = Join-Path $testDir "AltioraBackupPro.exe"
+if(!(Test-Path -LiteralPath $exeInTest)){
+  throw "Isolated test failed: EXE missing after extraction (possible AV quarantine): $exeInTest"
+}
 
-Write-Host "OK: isolated client bundle test passed"
+# Verify STATE signature in extracted bundle using python verifier (no EXE recursion)
+$pubInTest   = Join-Path $testDir "keys\altiora_public_key.pem"
+$stateInTest = Join-Path $testDir "STATE.md"
+if(!(Test-Path -LiteralPath $pubInTest)){ throw "Isolated test failed: missing pubkey: $pubInTest" }
+if(!(Test-Path -LiteralPath $stateInTest)){ throw "Isolated test failed: missing STATE.md: $stateInTest" }
+
+Push-Location $testDir
+try{
+  Write-Host "TEST: verify STATE signature in bundle..."
+  & python ".\tools\verify_signature.py" ".\keys\altiora_public_key.pem" ".\STATE.md"
+  $code = $LASTEXITCODE
+  if($code -ne 0){
+    throw "Isolated test failed: STATE signature invalid (python verify exit=$code)"
+  }
+
+  # Force protected mode only for the EXE test
+  $env:ALTIORA_PROTECTED = "1"
+
+  Write-Host "TEST: running EXE from isolated dir: $testDir"
+  & ".\AltioraBackupPro.exe" --version
+  $code = $LASTEXITCODE
+  if($code -ne 0){
+    throw "Isolated test failed: EXE --version returned exit=$code"
+  }
+
+  & ".\AltioraBackupPro.exe" --help
+  $code = $LASTEXITCODE
+  if($code -ne 0){
+    throw "Isolated test failed: EXE --help returned exit=$code"
+  }
+
+  Write-Host "OK: isolated client bundle test passed"
+}
+finally{
+  Pop-Location
+  Remove-Item Env:\ALTIORA_PROTECTED -ErrorAction SilentlyContinue
+}
+
+
