@@ -1,4 +1,4 @@
-# Altiora Backup Pro â€” STATE
+# Altiora Backup Pro — STATE
 
 Date: 2026-03-01 18:36:22
 Status: STABLE
