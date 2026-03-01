@@ -1,4 +1,7 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "safe_fs.ps1")
+. "$PSScriptRoot\safe_fs.ps1"
+
 
 # detect repo root
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -10,7 +13,7 @@ if(-not (Test-Path $releasesDir)){
 }
 
 # find latest release
-$lastZip = Get-ChildItem $releasesDir -Filter "AltioraBackupPro_v*_release.zip" |
+  $lastZip = Get-ChildItem -LiteralPath $releasesDir -Filter "AltioraBackupPro_v*_release.zip" -File -ErrorAction Stop |
 Sort-Object LastWriteTime -Descending |
 Select-Object -First 1
 
@@ -138,3 +141,4 @@ Write-Host "STATE updated"
 Write-Host "STATE_HISTORY recorded"
 Write-Host ""
 Write-Host "Release pipeline COMPLETE"
+

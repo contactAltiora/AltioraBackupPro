@@ -29,6 +29,9 @@ $__ABP_NO_USB_REQUIRED = $NoUsbRequired
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "safe_fs.ps1")
+. "$PSScriptRoot\safe_fs.ps1"
+
 # BEGIN ABP_GATE_SELFTEST_NONCE
 # ------------------------------------------------------------
 # ULTRA STRICT GATE : selftest crypto nonce (fixture versionnée)
@@ -154,7 +157,7 @@ function Clean-BuildArtifacts([string]$repo){
   $dist  = Join-Path $repo "dist"
   if(Test-Path $build){ Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue }
   if(Test-Path $dist){ Remove-Item -Recurse -Force $dist -ErrorAction SilentlyContinue }
-  Get-ChildItem -LiteralPath $repo -Filter "*.spec" -File -ErrorAction SilentlyContinue | ForEach-Object {
+Get-ChildItem -LiteralPath $repo -Filter "*.spec" -File -ErrorAction SilentlyContinue | ForEach-Object {
     Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue
   }
 }
@@ -191,6 +194,22 @@ function Smoke-Tests([string]$repo,[string]$exe){
 
   $env:ALTIORA_EDITION = "FREE"
 
+
+  # Ensure protected-mode assets exist next to EXE (frozen base dir)
+  $exeDir = Split-Path -Parent $exe
+  $repoRoot = $Root
+  $kSrc = Join-Path $repoRoot "keys\altiora_public_key.pem"
+  $s1  = Join-Path $repoRoot "STATE.md"
+  $s2  = Join-Path $repoRoot "STATE.md.sig"
+  if(!(Test-Path -LiteralPath $kSrc)){ throw "Smoke: missing repo key: $kSrc" }
+  if(!(Test-Path -LiteralPath $s1)){  throw "Smoke: missing repo state: $s1" }
+  if(!(Test-Path -LiteralPath $s2)){  throw "Smoke: missing repo state sig: $s2" }
+  $kDstDir = Join-Path $exeDir "keys"
+  New-Item -ItemType Directory -Force $kDstDir | Out-Null
+  Copy-Item -LiteralPath $kSrc -Destination (Join-Path $kDstDir "altiora_public_key.pem") -Force
+  Copy-Item -LiteralPath $s1  -Destination (Join-Path $exeDir "STATE.md") -Force
+  Copy-Item -LiteralPath $s2  -Destination (Join-Path $exeDir "STATE.md.sig") -Force
+
   & $exe "backup"  $src  $altb -p "x" | Out-Null
   & $exe "verify"  $altb -p "x" | Out-Null
   & $exe "restore" $altb $out  -p "x" | Out-Null
@@ -213,6 +232,20 @@ function Make-ReleasePackage([string]$repo,[string]$exe,[string]$ver,[string]$pr
   $exeOut  = Join-Path $relDir $exeName
   Copy-Item -LiteralPath $exe -Destination $exeOut -Force
 
+  # Include protected-mode assets in release folder (required by EXE in protected mode)
+  $kSrc = Join-Path $repo "keys\altiora_public_key.pem"
+  $s1  = Join-Path $repo "STATE.md"
+  $s2  = Join-Path $repo "STATE.md.sig"
+  if(!(Test-Path -LiteralPath $kSrc)){ throw "Release: missing repo key: $kSrc" }
+  if(!(Test-Path -LiteralPath $s1)){  throw "Release: missing repo state: $s1" }
+  if(!(Test-Path -LiteralPath $s2)){  throw "Release: missing repo state sig: $s2" }
+  $kDstDir = Join-Path $relDir "keys"
+  New-Item -ItemType Directory -Force $kDstDir | Out-Null
+  Copy-Item -LiteralPath $kSrc -Destination (Join-Path $kDstDir "altiora_public_key.pem") -Force
+  Copy-Item -LiteralPath $s1  -Destination (Join-Path $relDir "STATE.md") -Force
+  Copy-Item -LiteralPath $s2  -Destination (Join-Path $relDir "STATE.md.sig") -Force
+
+
   $exeHash = Hash-SHA256 $exeOut
   $shaPath = Join-Path $relDir ("AltioraBackupPro_v$ver.sha256")
   $exeHash | Set-Content -LiteralPath $shaPath -Encoding ASCII
@@ -233,6 +266,9 @@ Build info :
 Fichiers :
   - $exeName
   - AltioraBackupPro_v$ver.sha256
+  - STATE.md
+  - STATE.md.sig
+  - keys\altiora_public_key.pem
 
 Vérification intégrité :
   certutil -hashfile $exeName SHA256
@@ -328,3 +364,4 @@ if(-not (Test-Path -LiteralPath $secure)){ throw "Missing secure pipeline: $secu
 & $secure
 if($LASTEXITCODE -ne 0){ throw "Secure release step failed (exit=$LASTEXITCODE)" }
 # --- END AUTO-CHAIN ---
+
