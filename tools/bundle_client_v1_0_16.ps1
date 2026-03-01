@@ -1,4 +1,6 @@
 ﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 if($env:ALTIORA_PATCH -ne "1"){ throw "ALTIORA_PATCH=1 requis (utiliser tools\patch_runner.ps1)" }
 
 $root = (Get-Location).Path
@@ -32,7 +34,7 @@ New-Item -ItemType Directory -Force $bundleDir | Out-Null
 New-Item -ItemType Directory -Force (Split-Path $outZip) | Out-Null
 
 # ---- Clean bundle dir
-Get-ChildItem -LiteralPath $bundleDir -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+Safe-GetChildItem -LiteralPath $bundleDir -Force -OnError SilentlyContinue | Remove-Item -Recurse -Force -OnError SilentlyContinue
 
 # ---- Layout
 New-Item -ItemType Directory -Force (Join-Path $bundleDir "keys") | Out-Null

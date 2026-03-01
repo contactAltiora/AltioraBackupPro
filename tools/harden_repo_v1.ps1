@@ -1,4 +1,6 @@
-$ErrorActionPreference="Stop"
+﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 Set-Location "C:\Dev\AltioraBackupPro"
 
 $gitignore = ".gitignore"
@@ -30,7 +32,7 @@ if ($toAdd.Count -gt 0) {
 New-Item -ItemType Directory -Force .\tools\_patches | Out-Null
 $movePatterns = @("patch_*.ps1","patch_*.py","probe_*.py","read_header_*.py","scan_kdf_*.py","init_master_key.py","add_master_key_module_v1.ps1")
 foreach($pat in $movePatterns){
-  Get-ChildItem .\tools -File -Filter $pat -ErrorAction SilentlyContinue | ForEach-Object {
+Safe-GetChildItem -LiteralPath .\tools -File -Filter $pat -OnError SilentlyContinue | ForEach-Object {
     Move-Item -Force $_.FullName (Join-Path .\tools\_patches $_.Name)
   }
 }

@@ -1,4 +1,6 @@
-$ErrorActionPreference="Stop"
+﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 
 $root = "C:\Dev\AltioraBackupPro"
 Set-Location $root
@@ -45,17 +47,17 @@ foreach($p in $includePaths){
 $srcRepo = Join-Path $staging "source_repo"
 if(Test-Path $srcRepo){
   # 1) dossiers __pycache__
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -Directory -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -Directory -Force -OnError SilentlyContinue |
     Where-Object { $_.Name -ieq "__pycache__" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 
   # 2) fichiers *.pyc
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -File -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -File -Force -OnError SilentlyContinue |
     Where-Object { $_.Extension -ieq ".pyc" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 
   # 3) fichiers *.bak / *.old (souvent du bruit dans les bundles)
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -File -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -File -Force -OnError SilentlyContinue |
     Where-Object { $_.Extension -ieq ".bak" -or $_.Extension -ieq ".old" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 }
@@ -88,13 +90,13 @@ try{
 }catch{
   Write-Host "[BUNDLE] ZipFile FAILED: $($_.Exception.GetType().FullName): $($_.Exception.Message)"
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   throw
 }
 
 if(!(Test-Path $tmpZip)){
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   Fail "ZIP temp non crÃ©Ã©: $tmpZip"
 }
 
@@ -102,7 +104,7 @@ Move-Item -LiteralPath $tmpZip -Destination $finalZip -Force
 
 if(!(Test-Path $finalZip)){
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   Fail "ZIP final non crÃ©Ã©: $finalZip"
 }
 
