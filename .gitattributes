@@ -1,0 +1,6 @@
+﻿# Signed artifacts must never be EOL-normalized by Git
+STATE.md -text
+STATE.md.sig -text
+STATE.md.sha256 -text
+_out/releases/*.sig -text
+_out/releases/*.sha256 -text
