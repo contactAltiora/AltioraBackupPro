@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $root = "C:\Dev\AltioraBackupPro"
 $alt  = Join-Path $root "altiora.py"

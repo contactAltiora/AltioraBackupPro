@@ -1,4 +1,4 @@
-﻿import sys, json, base64
+import sys, json, base64
 from pathlib import Path
 
 folder = Path(r"C:\Test")

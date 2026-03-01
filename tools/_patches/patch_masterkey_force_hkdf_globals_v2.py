@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import re
 
 MK = Path(r"C:\Dev\AltioraBackupPro\src\master_key.py")

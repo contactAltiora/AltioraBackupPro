@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
+$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
 $txt  = Get-Content $path -Raw -Encoding UTF8
 
 if($txt -notmatch "masterkey"){

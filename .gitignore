@@ -29,3 +29,15 @@ __pycache__/
 *.pyc
 *.pyo
 src/__pycache__/
+# --- Secrets / signing ---
+keys/
+*.pem
+*.sig
+
+# --- State artifacts ---
+STATE.md.sha256
+
+# --- Local / fixtures ---
+_fixtures/
+backups.json
+$target

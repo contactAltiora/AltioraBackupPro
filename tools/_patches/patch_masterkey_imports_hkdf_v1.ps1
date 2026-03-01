@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $root = "C:\Dev\AltioraBackupPro"
 $mk   = Join-Path $root "src\master_key.py"

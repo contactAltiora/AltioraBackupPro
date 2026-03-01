@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import json
 import sys
 from datetime import datetime, timezone

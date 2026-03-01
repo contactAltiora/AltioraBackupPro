@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 CORE = Path(r"C:\Dev\AltioraBackupPro\src\backup_core.py")
 s = CORE.read_text(encoding="utf-8")

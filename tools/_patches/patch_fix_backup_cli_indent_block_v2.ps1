@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
+$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
 $lines = Get-Content $path -Encoding UTF8
 
 # On repart du même bloc : celui qui commence par parser.add_argument(

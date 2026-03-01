@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\altiora.py"
+$path = "C:\Dev\AltioraBackupPro\altiora.py"
 $txt  = Get-Content $path -Raw -Encoding UTF8
 
 # 1) Ajoute le subparser "masterkey" dans la zone où sont déclarées les commandes

@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\altiora.py"
+$path = "C:\Dev\AltioraBackupPro\altiora.py"
 $s = Get-Content $path -Raw -Encoding UTF8
 
 $inject = @"

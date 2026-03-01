@@ -1,4 +1,4 @@
-﻿$path  = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
+$path  = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
 $lines = Get-Content $path -Encoding UTF8
 
 function LeadingSpaces([string]$s){

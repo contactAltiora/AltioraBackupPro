@@ -1,4 +1,6 @@
-﻿from src import license_core  # ABP_REMOVE_DEBUG_VERIFY_OFFSETS_V60E  # ABP_FIX_ORPHAN_WITH_INDENT_V60F  # ABP_DEBUG_VERIFY_FIELDS_V61B  # ABP_FIX_V61B_AND_DEBUG_V61C  # ABP_DISABLE_HDR_IT_OVERRIDE_V62B  # ABP_DEBUG_VERIFY_PAYLOAD_V63B  # ABP_DEBUG_VERIFY_LAYOUT_V64  # ABP_DEBUG_PAYLOAD_BOUNDARY_V65  # ABP_DEBUG_JSON_TO_BIN_BOUNDARY_V66  # ABP_FIX_VERIFY_PAYLOAD_OFFSET_V67  # ABP_FIX_STRIP_APPENDED_TAG_AFTER_TAG_PARSE_V68B  # ABP_FIX_STRIP_APPENDED_TAG_EXPLICIT_V69  # ABP_DEBUG_TRY_AAD_CANDIDATES_V70  # ABP_FIX_V70_TOPLEVEL_AND_INJECT_V70B  # ABP_DEBUG_LOCATE_SALT_IV_TAG_V71C  # ABP_DEBUG_PRINT_BACKUP_PATH_EXISTS_V72
+# ABP_ASCII_OUTPUT_V3
+# ABP_ASCII_OUTPUT_V2
+from src import license_core  # ABP_REMOVE_DEBUG_VERIFY_OFFSETS_V60E  # ABP_FIX_ORPHAN_WITH_INDENT_V60F  # ABP_DEBUG_VERIFY_FIELDS_V61B  # ABP_FIX_V61B_AND_DEBUG_V61C  # ABP_DISABLE_HDR_IT_OVERRIDE_V62B  # ABP_DEBUG_VERIFY_PAYLOAD_V63B  # ABP_DEBUG_VERIFY_LAYOUT_V64  # ABP_DEBUG_PAYLOAD_BOUNDARY_V65  # ABP_DEBUG_JSON_TO_BIN_BOUNDARY_V66  # ABP_FIX_VERIFY_PAYLOAD_OFFSET_V67  # ABP_FIX_STRIP_APPENDED_TAG_AFTER_TAG_PARSE_V68B  # ABP_FIX_STRIP_APPENDED_TAG_EXPLICIT_V69  # ABP_DEBUG_TRY_AAD_CANDIDATES_V70  # ABP_FIX_V70_TOPLEVEL_AND_INJECT_V70B  # ABP_DEBUG_LOCATE_SALT_IV_TAG_V71C  # ABP_DEBUG_PRINT_BACKUP_PATH_EXISTS_V72
 import os
 
 # ABP_DEBUG_TRY_AAD_CANDIDATES_V70
@@ -148,7 +150,7 @@ if "MAGIC8" not in globals():
 if "MAGIC9" not in globals():
     MAGIC9 = b"ALTBKUP10"
 # v75i: restore _has_wildcards (drift-safe)
-# Utilisé par _collect_files pour détecter les patterns (glob).
+# Utilise par _collect_files pour detecter les patterns (glob).
 if "_has_wildcards" not in globals():
     def _has_wildcards(p: str) -> bool:
         if p is None:
@@ -157,7 +159,7 @@ if "_has_wildcards" not in globals():
             s = str(p)
         except Exception:
             return False
-        # Caractères glob usuels: *, ?, [] (Windows/Posix glob)
+        # Caracteres glob usuels: *, ?, [] (Windows/Posix glob)
         return ("*" in s) or ("?" in s) or ("[" in s) or ("]" in s)
 # v75h: restore _safe_join (drift-safe)
 # Anti path-traversal: interdit les chemins qui sortent de output_dir pendant la restauration.
@@ -175,7 +177,7 @@ if "_safe_join" not in globals():
         if rel.startswith("/") or rel.startswith("\\\\"):
             raise ValueError("absolute/UNC path not allowed")
 
-        # Refuser les chemins de type "C:..." (drive) même sans slash
+        # Refuser les chemins de type "C:..." (drive) meme sans slash
         if len(rel) >= 2 and rel[1] == ":":
             raise ValueError("drive path not allowed")
 
@@ -209,7 +211,7 @@ if "_derive_key" not in globals():
         if it <= 0:
             it = 300_000
 
-        # imports locaux pour éviter tout souci de drift d'import
+        # imports locaux pour eviter tout souci de drift d'import
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
         from cryptography.hazmat.primitives import hashes
 
@@ -221,7 +223,7 @@ if "_derive_key" not in globals():
         )
         return kdf.derive(password.encode("utf-8"))
 # v75e: restore b64 helpers (drift-safe)
-# _b64d/_b64e doivent exister au scope module (utilisés par verify/restore/create).
+# _b64d/_b64e doivent exister au scope module (utilises par verify/restore/create).
 import base64 as _abp_b64
 
 if "_b64d" not in globals():
@@ -240,9 +242,12 @@ if "_b64e" not in globals():
 
 # v75a: restore module constants (drift-safe)
 # v75k: edition lock + reason (single source of truth, module-scope)
-# Règle: FREE par défaut. PRO seulement si licence valide.
+# Regle: FREE par defaut. PRO seulement si licence valide.
 if "FREE_RESTORE_LIMIT_BYTES" not in globals():
     FREE_RESTORE_LIMIT_BYTES = 1024 * 1024 * 1024  # 1 GiB (Free restore limit)
+# FREE: limitation BACKUP (taille logique en clair)
+FREE_BACKUP_LIMIT_BYTES = 1024 * 1024 * 1024  # 1 GiB (Free backup limit)
+
 
 try:
     EDITION_REQUESTED = os.environ.get("ALTIORA_EDITION", "FREE").upper()
@@ -250,7 +255,7 @@ except Exception:
     EDITION_REQUESTED = "FREE"
 
 # v75l: optional strict license mode
-# Si ALTIORA_LICENSE_STRICT=1 et PRO demandé, alors licence doit être fournie explicitement via ALTIORA_LICENSE_FILE.
+# Si ALTIORA_LICENSE_STRICT=1 et PRO demande, alors licence doit etre fournie explicitement via ALTIORA_LICENSE_FILE.
 try:
     _strict = os.environ.get("ALTIORA_LICENSE_STRICT", "").strip() == "1"
 except Exception:
@@ -313,7 +318,7 @@ class BackupCore:
         except Exception:
             self.log = None
 
-        # Permet à la CLI / tests d’afficher une “raison” si besoin
+        # Permet a la CLI / tests d'afficher une "raison" si besoin
         self.last_verify_error: Optional[str] = None
 
     def _log_info(self, msg: str, *args: Any) -> None:
@@ -364,7 +369,7 @@ class BackupCore:
             return os.path.abspath(base_dir), [abs_source]
 
         if not os.path.isdir(abs_source):
-            raise FileNotFoundError(f"Source non trouvée: {abs_source}")
+            raise FileNotFoundError(f"Source non trouvee: {abs_source}")
 
         base_dir = abs_source
         files: List[str] = []
@@ -374,7 +379,7 @@ class BackupCore:
                 files.append(os.path.abspath(os.path.join(root, fn)))
 
         if not files:
-            raise FileNotFoundError(f"Dossier source vide (aucun fichier à sauvegarder): {abs_source}")
+            raise FileNotFoundError(f"Dossier source vide (aucun fichier a sauvegarder): {abs_source}")
 
         return os.path.abspath(base_dir), files
 
@@ -394,7 +399,7 @@ class BackupCore:
 
         try:
             if not password:
-                print("❌ ERREUR BACKUP: mot de passe vide.")
+                print("ERROR ERREUR BACKUP: mot de passe vide.")
                 return False
 
             out_dir = os.path.dirname(output_path_abs) or "."
@@ -405,12 +410,12 @@ class BackupCore:
             try:
                 base_dir, files_to_backup = self._collect_files(source_path)
             except FileNotFoundError as e:
-                print(f"❌ ERREUR BACKUP: {e}")
+                print(f"ERROR ERREUR BACKUP: {e}")
                 self._log_error("BACKUP FAILED reason=source_invalid source=%s", os.path.abspath(source_path))
                 return False
 
             if not files_to_backup:
-                print("❌ ERREUR BACKUP: aucun fichier à sauvegarder (source vide ou motif invalide).")
+                print("ERROR ERREUR BACKUP: aucun fichier a sauvegarder (source vide ou motif invalide).")
                 self._log_error("BACKUP FAILED reason=no_files source=%s", os.path.abspath(source_path))
                 return False
 
@@ -426,7 +431,7 @@ class BackupCore:
                     continue
 
             if not manifest:
-                print("❌ ERREUR BACKUP: impossible de lire les fichiers de la source (droits/accès).")
+                print("ERROR ERREUR BACKUP: impossible de lire les fichiers de la source (droits/acces).")
                 self._log_error("BACKUP FAILED reason=manifest_empty source=%s", os.path.abspath(source_path))
                 return False
 
@@ -434,6 +439,25 @@ class BackupCore:
             mode = "w:gz" if compress else "w"
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                # ABP_FREE_BACKUP_LIMIT_V4: block backup > 1GiB in FREE (logical/plain size)
+                if EDITION == "FREE":
+                    try:
+                        if int(total_size) > int(FREE_BACKUP_LIMIT_BYTES):
+                            total_gb = float(total_size) / (1024.0 * 1024.0 * 1024.0)
+                            limit_gb = float(FREE_BACKUP_LIMIT_BYTES) / (1024.0 * 1024.0 * 1024.0)
+                            print("\nERROR BACKUP BLOQUE - Altiora Backup Free")
+                            print(f"   Taille a sauvegarder : {total_gb:.2f} Go")
+                            print(f"   Limite Free          : {limit_gb:.2f} Go\n")
+                            print("-> Passez a Altiora Backup Pro pour sauvegarder sans limite.")
+                            self.last_error_code = "FREE_LIMIT_BACKUP"
+                            self.last_exit_code = 102
+                            return False
+                    except Exception:
+                        print("\nERROR BACKUP BLOQUE - Altiora Backup Free (erreur taille)")
+                        print("-> Passez a Altiora Backup Pro pour sauvegarder sans limite.")
+                        self.last_error_code = "FREE_LIMIT_BACKUP_ERROR"
+                        self.last_exit_code = 102
+                        return False
                 tmp_archive = tmp.name
 
             try:
@@ -447,7 +471,7 @@ class BackupCore:
 
                 try:
                     if os.path.getsize(tmp_archive) <= 0:
-                        print("❌ ERREUR BACKUP: archive interne vide (source invalide).")
+                        print("ERROR ERREUR BACKUP: archive interne vide (source invalide).")
                         self._log_error("BACKUP FAILED reason=empty_archive source=%s", os.path.abspath(source_path))
                         return False
                 except Exception:
@@ -518,12 +542,12 @@ class BackupCore:
                     }
                 )
 
-                print(f"📦 Backup: {os.path.basename(output_path_abs)}")
-                print(f"   🆔 ID: {backup_id}")
-                print(f"   📄 Fichiers: {len(manifest)}")
-                print(f"   📦 Taille: {os.path.getsize(output_path_abs)} bytes")
-                print(f"   📄 Données (clair): {total_size} bytes")
-                print(f" ⏱️  Durée: {elapsed:.2f}s")
+                print(f"PACKAGE Backup: {os.path.basename(output_path_abs)}")
+                print(f"   ID ID: {backup_id}")
+                print(f"   FILE Fichiers: {len(manifest)}")
+                print(f"   PACKAGE Taille: {os.path.getsize(output_path_abs)} bytes")
+                print(f"   FILE Donnees (clair): {total_size} bytes")
+                print(f" TIME  Duree: {elapsed:.2f}s")
 
                 self._log_info(
                     "BACKUP OK id=%s files=%s bytes=%s elapsed=%.2f",
@@ -542,7 +566,7 @@ class BackupCore:
                     pass
 
         except Exception as e:
-            print(f"❌ ERREUR BACKUP: {type(e).__name__}: {e}")
+            print(f"ERROR ERREUR BACKUP: {type(e).__name__}: {e}")
             self._log_exception("BACKUP FAILED")
             try:
                 tmp_candidate = output_path_abs + ".tmp"
@@ -629,12 +653,12 @@ class BackupCore:
         return collisions
 
     # ------------------------------------------------------------------
-    # VERIFY (bool) + VERIFY (détaillé)
+    # VERIFY (bool) + VERIFY (detaille)
     # ------------------------------------------------------------------
     def verify_backup_detailed(self, backup_path: str, password: str) -> Tuple[bool, str]:
         """
         Retourne (ok, reason).
-        reason est une string stable exploitable côté CLI/tests.
+        reason est une string stable exploitable cote CLI/tests.
         """
         # ABP_DEBUG_VERIFY_BD_V58C
         _abp_dbg("verify_backup_detailed() ENTER")
@@ -1053,7 +1077,7 @@ class BackupCore:
 
                     decryptor.finalize()
 
-                # v74a: priorité aux backups AAD (nouveau format), puis fallback legacy sans AAD
+                # v74a: priorite aux backups AAD (nouveau format), puis fallback legacy sans AAD
                 try:
                     if header_raw is not None:
                         _try_verify_with_aad(header_raw)
@@ -1441,7 +1465,7 @@ class BackupCore:
         ok, _reason = self.verify_backup_detailed(backup_path, password)
         return ok
 
-    # Aliases (pour compat côté CLI / altiora.py fallback)
+    # Aliases (pour compat cote CLI / altiora.py fallback)
     def verify(self, backup_path: str, password: str) -> bool:
         # ABP_CORE_HDR_ITER_V51
         __abp_it = int(header.get("iterations", 300_000))  # v75f: fallback stable (no autodetect helper)
@@ -1475,21 +1499,21 @@ class BackupCore:
         os.makedirs(output_dir, exist_ok=True)
 
         if not os.path.exists(backup_path):
-            print("❌ Fichier de backup introuvable.")
+            print("ERROR Fichier de backup introuvable.")
             return False
 
         if not password:
-            print("❌ Échec restauration: mot de passe vide.")
+            print("ERROR Echec restauration: mot de passe vide.")
             return False
 
         header = self._read_container_header(backup_path)
         if not header:
-            print("❌ Échec restauration: format non reconnu.")
+            print("ERROR Echec restauration: format non reconnu.")
             return False
 
         # ------------------------------------------------------------------
         # FREE: limitation RESTORE uniquement (<= 100 Mo restaurables)
-        # Blocage AVANT toute écriture sur disque.
+        # Blocage AVANT toute ecriture sur disque.
         # ------------------------------------------------------------------
         if EDITION == "FREE":
             try:
@@ -1500,16 +1524,16 @@ class BackupCore:
                         plain_size = sum(int(it.get("size") or 0) for it in manifest)
                 if plain_size > FREE_RESTORE_LIMIT_BYTES:
                     total_mb = plain_size / (1024 * 1024)
-                    print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free")
-                    print(f"   Taille à restaurer : {total_mb:.2f} Mo")
+                    print("\nERROR RESTAURATION BLOQUEE - Altiora Backup Free")
+                    print(f"   Taille a restaurer : {total_mb:.2f} Mo")
                     print("   Limite Free        : 100 Mo\n")
-                    print("👉 Passez à Altiora Backup Pro (49,99€/mois) pour restaurer sans limite.")
+                    print("-> Passez a Altiora Backup Pro (49,99€/mois) pour restaurer sans limite.")
                     self.last_error_code = "FREE_LIMIT"
                     self.last_exit_code = 101
                     return False
             except Exception:
-                print("\n❌ RESTAURATION BLOQUÉE — Altiora Backup Free (erreur taille)")
-                print("👉 Passez à Altiora Backup Pro (49,99€/mois) pour restaurer sans limite.")
+                print("\nERROR RESTAURATION BLOQUEE - Altiora Backup Free (erreur taille)")
+                print("-> Passez a Altiora Backup Pro (49,99€/mois) pour restaurer sans limite.")
                 return False
 
         magic_len = int(header.get("_magic_len", 8))
@@ -1531,14 +1555,14 @@ class BackupCore:
             ciphertext_start = magic_len + 2 + 4 + header_len
             ciphertext_end = file_size - GCM_TAG_LEN
             if ciphertext_end <= ciphertext_start:
-                print("❌ Échec restauration: contenu chiffré invalide.")
+                print("ERROR Echec restauration: contenu chiffre invalide.")
                 return False
 
             with open(backup_path, "rb") as f:
                 f.seek(-GCM_TAG_LEN, os.SEEK_END)
                 tag = f.read(GCM_TAG_LEN)
                 if len(tag) != GCM_TAG_LEN:
-                    print("❌ Échec restauration: tag GCM invalide.")
+                    print("ERROR Echec restauration: tag GCM invalide.")
                     return False
 
                 header_raw = header.get("_header_raw", None)
@@ -1566,7 +1590,7 @@ class BackupCore:
                             out.write(decryptor.update(chunk))
                         out.write(decryptor.finalize())
 
-                # v74a: priorité AAD (nouveau), puis fallback legacy sans AAD
+                # v74a: priorite AAD (nouveau), puis fallback legacy sans AAD
                 try:
                     if header_raw is not None:
                         _decrypt_to_tmp_with_aad(header_raw)
@@ -1582,7 +1606,7 @@ class BackupCore:
             with tarfile.open(tmp_archive, mode) as tf:
                 members = tf.getmembers()
                 if not members:
-                    print("❌ Échec restauration: archive interne vide.")
+                    print("ERROR Echec restauration: archive interne vide.")
                     return False
 
                 for member in members:
@@ -1609,16 +1633,16 @@ class BackupCore:
                     restored += 1
 
             elapsed = time.time() - start
-            print(f"✅ Restauration OK: {restored} fichier(s) dans {output_dir}")
-            print(f"   📄 Données: {total_bytes} bytes")
-            print(f"   ⏱️  Durée: {elapsed:.2f}s")
+            print(f"OK Restauration OK: {restored} fichier(s) dans {output_dir}")
+            print(f"   FILE Donnees: {total_bytes} bytes")
+            print(f"   TIME  Duree: {elapsed:.2f}s")
             return restored > 0
 
         except InvalidTag:
-            print("❌ Échec restauration: mot de passe incorrect OU backup corrompu (AES-GCM).")
+            print("ERROR Echec restauration: mot de passe incorrect OU backup corrompu (AES-GCM).")
             return False
         except Exception as e:
-            print(f"❌ Échec restauration: {type(e).__name__}: {e}")
+            print(f"ERROR Echec restauration: {type(e).__name__}: {e}")
             return False
         finally:
             try:
@@ -1626,6 +1650,8 @@ class BackupCore:
                     os.remove(tmp_archive)
             except Exception:
                 pass
+
+
 
 
 

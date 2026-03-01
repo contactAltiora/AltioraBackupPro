@@ -1,4 +1,4 @@
-﻿$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
+$path = "C:\Dev\AltioraBackupPro\src\backup_cli.py"
 $lines = Get-Content $path -Encoding UTF8
 
 # Helper: find first line index that matches exact start (trim-left sensitive)

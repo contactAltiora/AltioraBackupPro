@@ -1,4 +1,4 @@
-﻿import re
+import re
 from pathlib import Path
 
 ALT = Path(__file__).resolve().parents[1] / "altiora.py"

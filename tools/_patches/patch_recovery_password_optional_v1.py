@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 def die(msg: str):
     raise SystemExit("[PATCH_RECOVERY_PASSWORD_OPTIONAL_V1] " + msg)

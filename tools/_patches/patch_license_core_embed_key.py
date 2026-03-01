@@ -1,4 +1,4 @@
-﻿import re
+import re
 from pathlib import Path
 
 LIC = Path(__file__).resolve().parents[1] / "src" / "license_core.py"

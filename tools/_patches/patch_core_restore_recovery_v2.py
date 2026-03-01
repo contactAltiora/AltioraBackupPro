@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 def die(msg: str):
     raise SystemExit("[PATCH_CORE_RESTORE_RECOVERY_V2] " + msg)

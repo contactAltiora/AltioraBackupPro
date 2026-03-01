@@ -1,4 +1,5 @@
-﻿import json
+# ABP_ASCII_OUTPUT_V3
+import json
 import os
 from datetime import datetime
 
@@ -15,12 +16,12 @@ class BackupManager:
             try:
                 with open(self.db_file, "r", encoding="utf-8-sig") as f:
                     self.backups = json.load(f)
-                print(f"  → Base de données chargée ({len(self.backups)} backups)")
+                print(f"  -> Base de données chargée ({len(self.backups)} backups)")
             except Exception as e:
-                print(f"  → Nouvelle base de données créée (erreur: {str(e)[:50]})")
+                print(f"  -> Nouvelle base de données créée (erreur: {str(e)[:50]})")
                 self.backups = {}
         else:
-            print("  → Nouvelle base de données créée")
+            print("  -> Nouvelle base de données créée")
             self.backups = {}
 
     def save_database(self):
@@ -32,7 +33,7 @@ class BackupManager:
             os.replace(tmp_file, self.db_file)
             return True
         except Exception as e:
-            print(f"❌ Erreur sauvegarde DB: {e}")
+            print(f"ERROR Erreur sauvegarde DB: {e}")
             return False
 
     def add_backup(self, metadata):
@@ -42,7 +43,7 @@ class BackupManager:
             backup_id = metadata.get("backup_id") or metadata.get("id")
 
             if not backup_id:
-                print("❌ Erreur: backup_id introuvable, backup non enregistré")
+                print("ERROR Erreur: backup_id introuvable, backup non enregistré")
                 return False
 
             metadata["backup_id"] = backup_id
@@ -51,14 +52,14 @@ class BackupManager:
             self.backups[backup_id] = metadata
 
             if self.save_database():
-                print(f"  → Backup enregistré: {metadata.get('name', 'Sans nom')}")
+                print(f"  -> Backup enregistré: {metadata.get('name', 'Sans nom')}")
                 return True
 
-            print("❌ Échec sauvegarde base de données")
+            print("ERROR ERROR sauvegarde base de données")
             return False
 
         except Exception as e:
-            print(f"❌ Erreur d'enregistrement: {e}")
+            print(f"ERROR Erreur d'enregistrement: {e}")
             return False
 
     def get_backup(self, backup_id):
@@ -112,7 +113,7 @@ class BackupManager:
             }
 
         except Exception as e:
-            print(f"❌ Erreur dans get_stats: {e}")
+            print(f"ERROR Erreur dans get_stats: {e}")
             return {
                 "total_backups": 0,
                 "total_size": 0,
@@ -141,10 +142,10 @@ class BackupManager:
 
             if removed:
                 self.save_database()
-                print(f"  → {removed} vieux backups supprimés (> {days} jours)")
+                print(f"  -> {removed} vieux backups supprimés (> {days} jours)")
 
             return removed
 
         except Exception as e:
-            print(f"❌ Erreur nettoyage: {e}")
+            print(f"ERROR Erreur nettoyage: {e}")
             return 0
