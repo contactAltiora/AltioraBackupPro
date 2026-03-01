@@ -1,4 +1,6 @@
-$ErrorActionPreference="Stop"
+﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 
 if($env:ALTIORA_PATCH -ne "1"){
   throw "ALTIORA_PATCH=1 requis (utiliser patch_runner.ps1)"
@@ -89,13 +91,13 @@ try{
 }catch{
   Write-Host "[BUNDLE] ZipFile FAILED: $($_.Exception.GetType().FullName): $($_.Exception.Message)"
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   throw
 }
 
 if(!(Test-Path $tmpZip)){
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   Fail "ZIP temp non créé: $tmpZip"
 }
 
@@ -103,7 +105,7 @@ Move-Item -LiteralPath $tmpZip -Destination $finalZip -Force
 
 if(!(Test-Path $finalZip)){
   Write-Host "[BUNDLE] Diagnostic listing _out:"
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
   Fail "ZIP final non créé: $finalZip"
 }
 

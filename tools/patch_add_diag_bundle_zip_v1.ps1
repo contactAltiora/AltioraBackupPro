@@ -1,4 +1,6 @@
-$ErrorActionPreference="Stop"
+﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 
 if($env:ALTIORA_PATCH -ne "1"){
   throw "ALTIORA_PATCH=1 requis (utiliser patch_runner.ps1)"
@@ -29,13 +31,13 @@ Write-Host "============================================================"
 $outDir = Join-Path $root "_out"
 Write-Host "[DIAG] _out: $outDir exists=$(Test-Path $outDir)"
 if(Test-Path $outDir){
-  Get-ChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
+Safe-GetChildItem -LiteralPath $outDir | Select-Object Name,Length,LastWriteTime | Format-Table -AutoSize | Out-String | Write-Host
 }
 
 $staging = Join-Path $outDir "bundle_BACKUP_PRO_ALTIORA"
 Write-Host "[DIAG] staging: $staging exists=$(Test-Path $staging)"
 if(Test-Path $staging){
-  Get-ChildItem -LiteralPath $staging -Recurse -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $staging -Recurse -OnError SilentlyContinue |
     Select-Object -First 40 FullName,Length |
     Format-Table -AutoSize | Out-String | Write-Host
 }

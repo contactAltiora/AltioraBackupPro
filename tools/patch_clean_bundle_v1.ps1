@@ -1,4 +1,6 @@
-$ErrorActionPreference="Stop"
+﻿$ErrorActionPreference="Stop"
+. "$PSScriptRoot\safe_fs.ps1"
+
 
 if($env:ALTIORA_PATCH -ne "1"){
   throw "ALTIORA_PATCH=1 requis (utiliser patch_runner.ps1)"
@@ -37,17 +39,17 @@ $cleanBlock = @'
 $srcRepo = Join-Path $staging "source_repo"
 if(Test-Path $srcRepo){
   # 1) dossiers __pycache__
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -Directory -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -Directory -Force -OnError SilentlyContinue |
     Where-Object { $_.Name -ieq "__pycache__" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 
   # 2) fichiers *.pyc
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -File -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -File -Force -OnError SilentlyContinue |
     Where-Object { $_.Extension -ieq ".pyc" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 
   # 3) fichiers *.bak / *.old (souvent du bruit dans les bundles)
-  Get-ChildItem -LiteralPath $srcRepo -Recurse -File -Force -ErrorAction SilentlyContinue |
+Safe-GetChildItem -LiteralPath $srcRepo -Recurse -File -Force -OnError SilentlyContinue |
     Where-Object { $_.Extension -ieq ".bak" -or $_.Extension -ieq ".old" } |
     ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
 }
