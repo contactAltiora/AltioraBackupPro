@@ -84,8 +84,19 @@ if ($files.Count -gt 0) {
         $p = (Resolve-Path -LiteralPath $Script).ProviderPath
         Write-Host "RUN PATCH: $p"
         $env:ALTIORA_PATCH = "1"
-        & $p
-        $code = $LASTEXITCODE
+        # --- ABP: run patch in isolated subprocess (prevents variable leakage) ---
+$abp_repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
+$abp_cmd = @"
+Set-Location -LiteralPath '$abp_repoRoot'
+`$env:ALTIORA_PATCH = '1'
+& '$p'
+exit `$LASTEXITCODE
+"@
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command $abp_cmd
+$code = $LASTEXITCODE
+# --- end ABP subprocess run ---
         if ($code -ne 0) {
           throw "Patch script a échoué (exit=$code): $p"
         }
