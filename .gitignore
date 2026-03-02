@@ -41,3 +41,7 @@ STATE.md.sha256
 _fixtures/
 backups.json
 $target
+
+# --- allow tracking STATE proof files ---
+!STATE.md.sig
+!STATE.md.sha256
