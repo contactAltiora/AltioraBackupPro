@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory=$true)]
   [string]$Script,
 
@@ -87,6 +87,10 @@ if ($files.Count -gt 0) {
         # --- ABP: run patch in isolated subprocess (prevents variable leakage) ---
 $abp_repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
+# ABP_STATE_GUARD_V6B (PRE)
+$__abp_statePath = Join-Path $root "STATE.md"
+if(!(Test-Path -LiteralPath $__abp_statePath)){ throw "FAIL-CLOSED: STATE.md introuvable" }
+$__abp_stateHashBefore = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_statePath).Hash
 $abp_cmd = @"
 Set-Location -LiteralPath '$abp_repoRoot'
 `$env:ALTIORA_PATCH = '1'
@@ -101,6 +105,12 @@ $code = $LASTEXITCODE
           throw "Patch script a échoué (exit=$code): $p"
         }
         Write-Host "PATCH OK: $p"
+# ABP_STATE_GUARD_V6B (POST)
+if(!(Test-Path -LiteralPath $__abp_statePath)){ throw "FAIL-CLOSED: STATE.md supprimé par patch" }
+$__abp_stateHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_statePath).Hash
+if($__abp_stateHashBefore -ne $__abp_stateHashAfter){
+  throw "FAIL-CLOSED: modification non autorisée de STATE.md détectée"
+}
       }
       Write-Host "BASELINE LOCK: updated -> $altioraLockPath"
     } else {
@@ -132,3 +142,4 @@ $code = $LASTEXITCODE
   }
 
 }
+
