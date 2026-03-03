@@ -87,10 +87,6 @@ if ($files.Count -gt 0) {
         # --- ABP: run patch in isolated subprocess (prevents variable leakage) ---
 $abp_repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
-# ABP_STATE_GUARD_V6B (PRE)
-$__abp_statePath = Join-Path $root "STATE.md"
-if(!(Test-Path -LiteralPath $__abp_statePath)){ throw "FAIL-CLOSED: STATE.md introuvable" }
-$__abp_stateHashBefore = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_statePath).Hash
 # ABP_STATE_GUARD_V6C2 (PRE)
 $__abp_state_md      = Join-Path $root "STATE.md"
 $__abp_state_sig     = Join-Path $root "STATE.md.sig"
@@ -125,12 +121,6 @@ $__abp_h2_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_sha
 if($__abp_h_md -ne $__abp_h2_md){ throw "FAIL-CLOSED: modification non autorisée de STATE.md détectée" }
 if($__abp_h_sig -ne $__abp_h2_sig){ throw "FAIL-CLOSED: modification non autorisée de STATE.md.sig détectée" }
 if($__abp_h_sha256 -ne $__abp_h2_sha256){ throw "FAIL-CLOSED: modification non autorisée de STATE.md.sha256 détectée" }
-# ABP_STATE_GUARD_V6B (POST)
-if(!(Test-Path -LiteralPath $__abp_statePath)){ throw "FAIL-CLOSED: STATE.md supprimé par patch" }
-$__abp_stateHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_statePath).Hash
-if($__abp_stateHashBefore -ne $__abp_stateHashAfter){
-  throw "FAIL-CLOSED: modification non autorisée de STATE.md détectée"
-}
       }
       Write-Host "BASELINE LOCK: updated -> $altioraLockPath"
     } else {
@@ -162,5 +152,6 @@ if($__abp_stateHashBefore -ne $__abp_stateHashAfter){
   }
 
 }
+
 
 
