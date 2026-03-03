@@ -405,5 +405,29 @@ if(-not (Test-Path -LiteralPath $secure)){ throw "Missing secure pipeline: $secu
 if($LASTEXITCODE -ne 0){ throw "Secure release step failed (exit=$LASTEXITCODE)" }
 # --- END AUTO-CHAIN ---
 
+# ABP_RELEASE_SMOKE_LICENSE_V1
+# Optional license smoke test (PRO edition must be enabled with a valid Ed25519 license).
+try {
+   = "PRO"
 
+  # Prefer explicit path (caller can set ABP_SMOKE_LICENSE_FILE), else pick newest license in _out\licenses
+   = ( ?? "").Trim()
+  if([string]::IsNullOrWhiteSpace()){
+     = Get-ChildItem -LiteralPath (Join-Path  "..\_out\licenses") -Filter "*.license.json" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+    if(){  = .FullName }
+  }
+
+  if([string]::IsNullOrWhiteSpace() -or (-not (Test-Path -LiteralPath ))){
+    Write-Host "WARN: license smoke skipped (no license file found). Set ABP_SMOKE_LICENSE_FILE to enable."
+  } else {
+     = 
+    py -c "from src import backup_core as bc; assert bc.EDITION=='PRO', (bc.EDITION, bc.EDITION_REASON); print('OK: license smoke passed')"
+    if( -ne 0){ throw "license smoke failed (exit=)" }
+  }
+} finally {
+  Remove-Item Env:\ALTIORA_LICENSE_FILE -ErrorAction SilentlyContinue
+  Remove-Item Env:\ALTIORA_EDITION -ErrorAction SilentlyContinue
+}
 
