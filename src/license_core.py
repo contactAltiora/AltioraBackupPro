@@ -1,4 +1,4 @@
-# ABP_ASCII_OUTPUT_V3
+﻿# ABP_ASCII_OUTPUT_V3
 import os, json, base64
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
@@ -112,3 +112,145 @@ def verify_license() -> Tuple[bool, str]:
         return True, "ok"
     except Exception:
         return False, "signature_invalid"
+
+# ABP_LICENSE_RUNTIME_VERIFY_V1
+# Adds Ed25519 license verification + expiry checks (non-invasive).
+import os
+import json
+import base64
+import datetime as _dt
+from pathlib import Path
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
+
+def _abp_canonical_json_bytes(obj: dict) -> bytes:
+    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _abp_utc_today_iso() -> str:
+    return _dt.datetime.utcnow().date().isoformat()
+
+
+def abp_verify_pro_license_file(
+    license_json_path: str,
+    public_key_pem_path: str = str(Path("keys") / "altiora_public_key.pem"),
+    require_product: str = "AltioraBackupPro",
+    require_edition: str = "PRO",
+) -> dict:
+    """
+    Verifies:
+      - license json exists
+      - sibling .sig exists (base64)
+      - Ed25519 signature over canonical JSON
+      - product/edition match
+      - expiry >= today(UTC)
+    Returns parsed license dict on success. Raises RuntimeError on failure.
+    """
+    lic_path = Path(license_json_path)
+    if not lic_path.exists():
+        raise RuntimeError(f"License file not found: {lic_path}")
+
+    sig_path = Path(str(lic_path)[:-5] + ".sig") if str(lic_path).endswith(".json") else Path(str(lic_path) + ".sig")
+    if not sig_path.exists():
+        raise RuntimeError(f"License signature not found: {sig_path}")
+
+    pub_path = Path(public_key_pem_path)
+    if not pub_path.exists():
+        raise RuntimeError(f"Public key not found: {pub_path}")
+
+    lic = json.loads(lic_path.read_text(encoding="utf-8"))
+    payload = _abp_canonical_json_bytes(lic)
+
+    sig_b64 = sig_path.read_text(encoding="utf-8").strip()
+    sig = base64.b64decode(sig_b64)
+
+    pub = serialization.load_pem_public_key(pub_path.read_bytes())
+    if not isinstance(pub, ed25519.Ed25519PublicKey):
+        raise RuntimeError("Unsupported public key type (expected Ed25519).")
+
+    try:
+        pub.verify(sig, payload)
+    except Exception as e:
+        raise RuntimeError(f"License signature invalid: {e}")
+
+    if lic.get("product") != require_product:
+        raise RuntimeError(f"License product mismatch: {lic.get('product')}")
+
+    if lic.get("edition") != require_edition:
+        raise RuntimeError(f"License edition mismatch: {lic.get('edition')}")
+
+    expiry = lic.get("expiry", "")
+    if not expiry or expiry < _abp_utc_today_iso():
+        raise RuntimeError(f"License expired (expiry={expiry}, today={_abp_utc_today_iso()})")
+
+    return lic
+
+
+def abp_verify_pro_license_env(strict: bool = False) -> dict | None:
+    """
+    Uses env ALTIORA_LICENSE_FILE.
+    - strict=False: returns None if missing/invalid
+    - strict=True: raises RuntimeError if missing/invalid
+    """
+    lic_path = os.environ.get("ALTIORA_LICENSE_FILE", "").strip()
+    if not lic_path:
+        if strict:
+            raise RuntimeError("ALTIORA_LICENSE_FILE requis (mode strict).")
+        return None
+
+    try:
+        return abp_verify_pro_license_file(lic_path)
+    except Exception as e:
+        if strict:
+            raise
+        return None
+
+# ABP_LICENSE_GATE_V1
+def _abp_env_truthy(name: str) -> bool:
+    v = (os.environ.get(name, "") or "").strip().lower()
+    return v in ("1", "true", "yes", "y", "on")
+
+
+def abp_require_pro_license_if_needed() -> dict | None:
+    """
+    Central gate for PRO features.
+    - If ALTIORA_LICENSE_STRICT truthy => license required and must be valid.
+    - Else => returns None if missing/invalid (soft-fail).
+    """
+    strict = _abp_env_truthy("ALTIORA_LICENSE_STRICT")
+    return abp_verify_pro_license_env(strict=strict)
+
+# ABP_VERIFY_LICENSE_V2_ED25519
+def verify_license():
+    """
+    Backward-compatible API used by src.backup_core.py:
+      returns (ok: bool, reason: str)
+
+    V2 behavior:
+      - Uses ALTIORA_LICENSE_FILE (path to *.license.json)
+      - Expects sibling .sig (base64)
+      - Verifies Ed25519 signature over canonical JSON
+      - Checks product/edition + expiry (UTC)
+    """
+    try:
+        lic_path = (os.environ.get("ALTIORA_LICENSE_FILE", "") or "").strip()
+        if not lic_path:
+            return (False, "missing_ALTIORA_LICENSE_FILE")
+
+        if not os.path.exists(lic_path):
+            return (False, "license_file_not_found")
+
+        try:
+            _lic = abp_verify_pro_license_file(lic_path)
+            # Optional: keep small stable info for debugging
+            _email = _lic.get("email", "")
+            _exp = _lic.get("expiry", "")
+            return (True, f"ed25519_ok:{_email}:{_exp}")
+        except Exception as e:
+            return (False, "ed25519_invalid:" + str(e))
+
+    except Exception as e_outer:
+        return (False, "verify_license_error:" + e_outer.__class__.__name__)
+
