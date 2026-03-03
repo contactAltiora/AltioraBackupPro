@@ -25,6 +25,46 @@ param([switch]$NoUsbRequired,
   [string]$ReleaseBase = "_release",
   [string]$OutReleases = "_out\releases"
 )
+
+# ================================
+# ABP_SAFEFS_FALLBACK_V3
+# Ensure Safe-GetChildItem exists in this runspace
+# ================================
+try {
+  $safeFs = Join-Path $PSScriptRoot "safe_fs.ps1"
+  if(Test-Path -LiteralPath $safeFs){ . $safeFs }
+} catch { }
+
+if(-not (Get-Command Safe-GetChildItem -ErrorAction SilentlyContinue)){
+  function Safe-GetChildItem {
+    [CmdletBinding()]
+    param(
+      [Parameter(Mandatory=$true)][string]$LiteralPath,
+      [string]$Filter,
+      [switch]$Recurse,
+      [switch]$File,
+      [switch]$Directory
+    )
+    $ea = $ErrorActionPreference
+    $ErrorActionPreference = "Stop"
+    try {
+      if(!(Test-Path -LiteralPath $LiteralPath)){ return @() }
+      $args = @{ LiteralPath = $LiteralPath; Force = $true }
+      if($Filter){ $args.Filter = $Filter }
+      if($Recurse){ $args.Recurse = $true }
+      if($File){ $args.File = $true }
+      if($Directory){ $args.Directory = $true }
+      return @(Get-ChildItem @args)
+    } finally {
+      $ErrorActionPreference = $ea
+    }
+  }
+}
+
+if(-not (Get-Command Safe-GetChildItem -ErrorAction SilentlyContinue)){
+  throw "FAIL-CLOSED: Safe-GetChildItem introuvable même après fallback."
+}
+
 $__ABP_NO_USB_REQUIRED = $NoUsbRequired
 
 Set-StrictMode -Version Latest
@@ -364,4 +404,6 @@ if(-not (Test-Path -LiteralPath $secure)){ throw "Missing secure pipeline: $secu
 & $secure
 if($LASTEXITCODE -ne 0){ throw "Secure release step failed (exit=$LASTEXITCODE)" }
 # --- END AUTO-CHAIN ---
+
+
 
