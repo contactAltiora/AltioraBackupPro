@@ -1,4 +1,4 @@
-# ABP_ASCII_OUTPUT_V3
+﻿# ABP_ASCII_OUTPUT_V3
 # ABP_ASCII_OUTPUT_V2
 from src import license_core  # ABP_REMOVE_DEBUG_VERIFY_OFFSETS_V60E  # ABP_FIX_ORPHAN_WITH_INDENT_V60F  # ABP_DEBUG_VERIFY_FIELDS_V61B  # ABP_FIX_V61B_AND_DEBUG_V61C  # ABP_DISABLE_HDR_IT_OVERRIDE_V62B  # ABP_DEBUG_VERIFY_PAYLOAD_V63B  # ABP_DEBUG_VERIFY_LAYOUT_V64  # ABP_DEBUG_PAYLOAD_BOUNDARY_V65  # ABP_DEBUG_JSON_TO_BIN_BOUNDARY_V66  # ABP_FIX_VERIFY_PAYLOAD_OFFSET_V67  # ABP_FIX_STRIP_APPENDED_TAG_AFTER_TAG_PARSE_V68B  # ABP_FIX_STRIP_APPENDED_TAG_EXPLICIT_V69  # ABP_DEBUG_TRY_AAD_CANDIDATES_V70  # ABP_FIX_V70_TOPLEVEL_AND_INJECT_V70B  # ABP_DEBUG_LOCATE_SALT_IV_TAG_V71C  # ABP_DEBUG_PRINT_BACKUP_PATH_EXISTS_V72
 import os
@@ -251,6 +251,8 @@ FREE_BACKUP_LIMIT_BYTES = 1024 * 1024 * 1024  # 1 GiB (Free backup limit)
 
 try:
     EDITION_REQUESTED = os.environ.get("ALTIORA_EDITION", "FREE").upper()
+    # ABP_STRICT_MISSING_FLAG_V2
+    _strict_missing_license = False
 except Exception:
     EDITION_REQUESTED = "FREE"
 
@@ -264,13 +266,15 @@ except Exception:
 if EDITION_REQUESTED == "PRO" and _strict:
     _p = os.environ.get("ALTIORA_LICENSE_FILE", "").strip()
     if (not _p) or (not os.path.exists(_p)):
-        EDITION_REQUESTED = "FREE"
+        _strict_missing_license = True
         # on force une raison stable (visible via logs)
         EDITION_REASON = "strict_missing_ALTIORA_LICENSE_FILE"
+        # ABP_STRICT_MISSING_FINAL_V2
+        EDITION = "FREE"
 EDITION = "FREE"
 EDITION_REASON = "default_free"
 
-if EDITION_REQUESTED == "PRO":
+if EDITION_REQUESTED == "PRO" and not _strict_missing_license:  # ABP_STRICT_MISSING_GUARD_V2
     try:
         ok, _reason = license_core.verify_license()
         if ok:
@@ -1650,6 +1654,7 @@ class BackupCore:
                     os.remove(tmp_archive)
             except Exception:
                 pass
+
 
 
 
