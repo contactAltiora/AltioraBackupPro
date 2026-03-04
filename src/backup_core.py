@@ -289,6 +289,10 @@ if EDITION_REQUESTED == "PRO" and not _strict_missing_license:  # ABP_STRICT_MIS
 else:
     EDITION = "FREE"
     EDITION_REASON = "env_free"
+    # ABP_STRICT_MISSING_FINAL_CLAMP_V3
+    if "_strict_missing_license" in globals() and _strict_missing_license:
+        EDITION = "FREE"
+        EDITION_REASON = "strict_missing_ALTIORA_LICENSE_FILE"
 class BackupCore:
     """
     Backup container format:
@@ -1654,6 +1658,7 @@ class BackupCore:
                     os.remove(tmp_archive)
             except Exception:
                 pass
+
 
 
 
