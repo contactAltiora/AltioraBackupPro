@@ -1,4 +1,5 @@
-﻿<#  tools\release_build_and_backup.ps1
+﻿# SAFE_FS_BOOTSTRAP_FIX_V4
+<#  tools\release_build_and_backup.ps1
     Altiora Backup Pro — Release builder (deterministic)
 
     Steps:
@@ -70,8 +71,6 @@ $__ABP_NO_USB_REQUIRED = $NoUsbRequired
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "safe_fs.ps1")
-. "$PSScriptRoot\safe_fs.ps1"
-
 # BEGIN ABP_GATE_SELFTEST_NONCE
 # ------------------------------------------------------------
 # ULTRA STRICT GATE : selftest crypto nonce (fixture versionnée)
@@ -404,6 +403,7 @@ if(-not (Test-Path -LiteralPath $secure)){ throw "Missing secure pipeline: $secu
 & $secure
 if($LASTEXITCODE -ne 0){ throw "Secure release step failed (exit=$LASTEXITCODE)" }
 # --- END AUTO-CHAIN ---
+
 
 
 

@@ -1,4 +1,12 @@
-﻿
+﻿# SAFE_FS_BOOTSTRAP_V4
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+$safeFs = Join-Path $PSScriptRoot "safe_fs.ps1"
+if(Test-Path -LiteralPath $safeFs){ . $safeFs }
+if(-not (Get-Command Safe-GetChildItem -ErrorAction SilentlyContinue)){
+  throw "FAIL-CLOSED: Safe-GetChildItem introuvable (safe_fs.ps1 non chargé)."
+}
+
 # ================================
 # ABP_SAFEFS_FALLBACK_V3
 # Ensure Safe-GetChildItem exists in this runspace
@@ -49,9 +57,6 @@ if(-not (Get-Command Safe-GetChildItem -ErrorAction SilentlyContinue)){
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "safe_fs.ps1")
-. "$PSScriptRoot\safe_fs.ps1"
-
-
 # detect repo root
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
@@ -204,6 +209,7 @@ Write-Host "STATE updated"
 Write-Host "STATE_HISTORY recorded"
 Write-Host ""
 Write-Host "Release pipeline COMPLETE"
+
 
 
 
