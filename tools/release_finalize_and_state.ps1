@@ -18,6 +18,15 @@ if(-not (Get-Command Safe-GetChildItem -ErrorAction SilentlyContinue)){
       [switch]$File,
       [switch]$Directory
     )
+
+# ABP_PARSE_VERSION_SUFFIX_V3
+function ABP-GetVersionCore {
+  param([Parameter(Mandatory=$true)][string]$V)
+  $v2 = $V.Trim()
+  $m = [regex]::Match($v2, '^(?<core>\d+\.\d+\.\d+)')
+  if($m.Success){ return $m.Groups["core"].Value }
+  return $v2
+}
     $ea = $ErrorActionPreference
     $ErrorActionPreference = "Stop"
     try {
@@ -62,12 +71,26 @@ if(-not $lastZip){
 }
 
 # extract version
-if($lastZip.BaseName -match "^AltioraBackupPro_(v\d+\.\d+\.\d+)_release$"){
+# # ABP_HELPER_SCOPE_V3I_C
+# ABP_FIX_COMMENT_SPLIT_V3J
+if(-not (Get-Command -Name ABP-GetVersionCore -ErrorAction SilentlyContinue)){
+  function ABP-GetVersionCore {
+    param([Parameter(Mandatory=$true)][string]$V)
+    $v2 = $V.Trim()
+    $m = [regex]::Match($v2, '^(?<core>\d+\.\d+\.\d+)')
+    if($m.Success){ return $m.Groups['core'].Value }
+    return $v2
+  }
+}
+
+# ABP_USE_NAME_BASENAME_V3H (use Name -> basename; avoid flaky .BaseName)
+$bn = [IO.Path]::GetFileNameWithoutExtension($lastZip.Name)
+if($bn -match "^AltioraBackupPro_(v\d+\.\d+\.\d+)(?:[A-Za-z0-9\.\+\-_]+)?_release$"){
     $version = $Matches[1]
+    $version = "v" + (ABP-GetVersionCore ($version.TrimStart("v")))
 }else{
     throw "Cannot parse version"
 }
-
 Write-Host ""
 Write-Host "Release detected:" $version
 
@@ -181,6 +204,12 @@ Write-Host "STATE updated"
 Write-Host "STATE_HISTORY recorded"
 Write-Host ""
 Write-Host "Release pipeline COMPLETE"
+
+
+
+
+
+
 
 
 

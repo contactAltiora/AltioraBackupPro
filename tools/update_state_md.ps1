@@ -1,4 +1,4 @@
-# Altiora Backup Pro — automatic STATE generator
+﻿# Altiora Backup Pro — automatic STATE generator
 # No parameters required
 
 $ErrorActionPreference = "Stop"
@@ -21,9 +21,11 @@ Select-Object -First 1
 if(-not $lastZip){
     throw "No release zip found"
 }
-
 # extract version
-if($lastZip.BaseName -match "^AltioraBackupPro_(v\d+\.\d+\.\d+)_release$"){
+# ABP_UPDATE_STATE_USE_NAME_BN_V3K3MIN
+$bn = [IO.Path]::GetFileNameWithoutExtension($lastZip.Name)
+# ABP_UPDATE_STATE_FIX_BN_NEWLINE_V3K4
+if($bn -match "^AltioraBackupPro_(v\d+\.\d+\.\d+)(?:[A-Za-z0-9.+_-]+)?_release$"){
     $version = $Matches[1]
 }else{
     throw "Version parse error"
@@ -95,3 +97,4 @@ Write-Host "STATE.md updated automatically"
 Write-Host "Version:" $version
 Write-Host "File:" $statePath
 Write-Host "STATE SHA256:" $stateHash
+
