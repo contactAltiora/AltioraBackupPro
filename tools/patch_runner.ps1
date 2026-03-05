@@ -80,7 +80,7 @@ if ($files.Count -gt 0) {
       $newLock | ConvertTo-Json -Depth 8 | Out-File -FilePath $altioraLockPath -Encoding UTF8
 # ABP: patch_runner executes patch scripts (v5)
       # --- ABP v5: exécution réelle du script patch (avant UpdateBaselineLock) ---
-      if ($Script) {
+      if ($Script -and $UpdateBaselineLock) {  # ABP_RUNPATCH_OUTSIDE_UPDATE_V6E3
         $p = (Resolve-Path -LiteralPath $Script).ProviderPath
         Write-Host "RUN PATCH: $p"
         $env:ALTIORA_PATCH = "1"
@@ -139,6 +139,50 @@ if($__abp_h_sha256 -ne $__abp_h2_sha256){ throw "FAIL-CLOSED: modification non a
 
     }
 
+# ABP_RUNPATCH_OUTSIDE_UPDATE_V6E3
+      if ($Script -and -not $UpdateBaselineLock) {  # ABP_RUNPATCH_OUTSIDE_UPDATE_V6E3
+        $p = (Resolve-Path -LiteralPath $Script).ProviderPath
+        Write-Host "RUN PATCH: $p"
+        $env:ALTIORA_PATCH = "1"
+        # --- ABP: run patch in isolated subprocess (prevents variable leakage) ---
+$abp_repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
+# ABP_STATE_GUARD_V6C2 (PRE)
+$__abp_state_md      = Join-Path $root "STATE.md"
+$__abp_state_sig     = Join-Path $root "STATE.md.sig"
+$__abp_state_sha256  = Join-Path $root "STATE.md.sha256"
+if(!(Test-Path -LiteralPath $__abp_state_md)){ throw "FAIL-CLOSED: STATE.md introuvable" }
+if(!(Test-Path -LiteralPath $__abp_state_sig)){ throw "FAIL-CLOSED: STATE.md.sig introuvable" }
+if(!(Test-Path -LiteralPath $__abp_state_sha256)){ throw "FAIL-CLOSED: STATE.md.sha256 introuvable" }
+$__abp_h_md     = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_md).Hash
+$__abp_h_sig    = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_sig).Hash
+$__abp_h_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_sha256).Hash
+$abp_cmd = @"
+Set-Location -LiteralPath '$abp_repoRoot'
+`$env:ALTIORA_PATCH = '1'
+& '$p'
+exit `$LASTEXITCODE
+"@
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command $abp_cmd
+$code = $LASTEXITCODE
+# --- end ABP subprocess run ---
+        if ($code -ne 0) {
+          throw "Patch script a échoué (exit=$code): $p"
+        }
+        Write-Host "PATCH OK: $p"
+# ABP_STATE_GUARD_V6C2 (POST)
+if(!(Test-Path -LiteralPath $__abp_state_md)){ throw "FAIL-CLOSED: STATE.md supprimé par patch" }
+if(!(Test-Path -LiteralPath $__abp_state_sig)){ throw "FAIL-CLOSED: STATE.md.sig supprimé par patch" }
+if(!(Test-Path -LiteralPath $__abp_state_sha256)){ throw "FAIL-CLOSED: STATE.md.sha256 supprimé par patch" }
+$__abp_h2_md     = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_md).Hash
+$__abp_h2_sig    = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_sig).Hash
+$__abp_h2_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $__abp_state_sha256).Hash
+if($__abp_h_md -ne $__abp_h2_md){ throw "FAIL-CLOSED: modification non autorisée de STATE.md détectée" }
+if($__abp_h_sig -ne $__abp_h2_sig){ throw "FAIL-CLOSED: modification non autorisée de STATE.md.sig détectée" }
+if($__abp_h_sha256 -ne $__abp_h2_sha256){ throw "FAIL-CLOSED: modification non autorisée de STATE.md.sha256 détectée" }
+      }
+
   } else {
 
     $initLock = [ordered]@{
@@ -152,6 +196,7 @@ if($__abp_h_sha256 -ne $__abp_h2_sha256){ throw "FAIL-CLOSED: modification non a
   }
 
 }
+
 
 
 
