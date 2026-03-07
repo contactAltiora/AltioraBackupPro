@@ -496,6 +496,7 @@ Chiffrement AES-256-GCM (standard industriel)
     subparsers.add_parser("list", help="Lister toutes les sauvegardes", parents=[parent])
     subparsers.add_parser("stats", help="Afficher les statistiques", parents=[parent])
     subparsers.add_parser("system-info", help="Afficher les informations systeme", parents=[parent])
+    subparsers.add_parser("license-info", help="Afficher les informations licence", parents=[parent])
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -759,8 +760,14 @@ Chiffrement AES-256-GCM (standard industriel)
         show_system_info()
         return 0
 
+    if args.command == "license-info":
+        from src.license_info import show_license_info
+        show_license_info()
+        return 0
+
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
 
