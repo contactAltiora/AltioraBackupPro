@@ -1,4 +1,20 @@
-﻿import os
+$ErrorActionPreference = "Stop"
+
+if ($env:ALTIORA_PATCH -ne "1") {
+    throw "ALTIORA_PATCH=1 requis"
+}
+
+$repo = (Get-Location).Path
+$module = Join-Path $repo "src\license_info.py"
+
+if (!(Test-Path $module)) {
+    throw "src\license_info.py introuvable"
+}
+
+Write-Host "PATCH: add license file support v2"
+
+$new = @'
+import os
 import json
 
 def _load_license_data():
@@ -46,3 +62,8 @@ def show_license_info():
     print("Customer :", customer)
     print("Restore limit :", restore_limit)
     print("")
+'@
+
+Set-Content -LiteralPath $module -Value $new -Encoding UTF8
+Write-Host "src/license_info.py reecrit"
+Write-Host "PATCH OK"
