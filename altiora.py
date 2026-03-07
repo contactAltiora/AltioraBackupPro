@@ -753,14 +753,8 @@ Chiffrement AES-256-GCM (standard industriel)
             print_footer(ok=True)
         return 0
 
-
-elif args.command == "system-info":
-    from src.system_info import show_system_info
-    show_system_info()
-
 if __name__ == "__main__":
     raise SystemExit(main())
-
 
 
 
