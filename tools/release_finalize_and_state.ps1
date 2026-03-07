@@ -194,10 +194,21 @@ if($LASTEXITCODE -ne 0){
 # copy STATE + signature to backup drives
 foreach($d in $backupDirs){
 
-    Copy-Item $statePath "$d\STATE.md" -Force
-    Copy-Item $stateSig "$d\STATE.md.sig" -Force
+    $dstState = "$d\STATE.md"
+    $dstSig   = "$d\STATE.md.sig"
 
-    & py $verifyScript $publicKey "$d\STATE.md" | Out-Host
+    Copy-Item $statePath $dstState -Force
+    Copy-Item $stateSig  $dstSig  -Force
+
+    if(-not (Test-Path -LiteralPath $dstState)){
+        throw "STATE.md missing on $d after copy"
+    }
+
+    if(-not (Test-Path -LiteralPath $dstSig)){
+        throw "STATE.md.sig missing on $d after copy"
+    }
+
+    & py $verifyScript $publicKey $dstState | Out-Host
 
     if($LASTEXITCODE -ne 0){
         throw "STATE signature invalid on $d"
@@ -209,6 +220,7 @@ Write-Host "STATE updated"
 Write-Host "STATE_HISTORY recorded"
 Write-Host ""
 Write-Host "Release pipeline COMPLETE"
+
 
 
 
