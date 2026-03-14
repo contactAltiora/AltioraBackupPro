@@ -1,4 +1,4 @@
-﻿# ABP_ASCII_OUTPUT_V3
+# ABP_ASCII_OUTPUT_V3
 # ABP_ITER_AUTO_V49C: applied (no-op, --iterations already present)  # ABP_REMOVE_PRICE_BANNER_V59
 # ABP_ITER_AUTO_V49B: applied
 # ABP_SYS_PATH_V47B: applied
@@ -17,6 +17,29 @@ CLI (backup / verify / restore / list / stats)
 import argparse
 import json
 import os
+
+def find_backup_drive(label: str):
+    import subprocess
+
+    cmd = [
+        "powershell",
+        "-Command",
+        f"(Get-Volume | Where-Object {{$_.FileSystemLabel -eq '{label}'}}).DriveLetter"
+    ]
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        shell=False,
+    )
+
+    letter = result.stdout.strip()
+    if letter:
+        return f"{letter}:\\"
+    return None
 
 
 # --- RUNTIME PROTECTION HOOK (fail-closed) ---
@@ -581,29 +604,86 @@ Chiffrement AES-256-GCM (standard industriel)
     # COMMANDES
     # ----------------------
     if args.command == "backup":
+        requested_output = args.output
+        requested_name = os.path.basename(os.path.normpath(requested_output))
+        if not requested_name:
+            requested_name = "backup.altb"
+
+        raw_destinations = []
+        for _label in ("ALTIORA_BACKUP_1", "ALTIORA_BACKUP_2"):
+            _drive = find_backup_drive(_label)
+            if _drive:
+                raw_destinations.append((_label, os.path.join(_drive, requested_name)))
+
+        destinations = []
+        seen_outputs = set()
+        for _label, _dest in raw_destinations:
+            _norm = os.path.normcase(os.path.abspath(_dest))
+            if _norm not in seen_outputs:
+                seen_outputs.add(_norm)
+                destinations.append((_label, _dest))
+
+        if not destinations:
+            destinations = [("args.output", requested_output)]
+
         if not args.json:
-            _safe_print("-> Backup : {}  ->  {}".format(args.source, args.output))
+            _safe_print("-> Backup : {}  ->  {}".format(args.source, requested_output))
             vprint(f"   CWD: {os.getcwd()}")
             vprint(f"   Source abs: {os.path.abspath(args.source)}")
-            vprint(f"   Output abs: {os.path.abspath(args.output)}")
+            vprint(f"   Output abs: {os.path.abspath(requested_output)}")
             _safe_print(f"   - PBKDF2: {args.iterations} itérations")
             _safe_print(f"   - Compression: {'non' if args.no_compress else 'oui'}")
+            if destinations and destinations[0][0] != "args.output":
+                _safe_print("   - Destinations auto détectées :")
+                for _label, _dest in destinations:
+                    _safe_print(f"     * {_label} -> {_dest}")
+            else:
+                _safe_print("   - Destination fallback args.output")
+
+        backup_results = []
+        all_ok = True
 
         try:
-            ok = bool(
-                core.create_backup(
-                    args.source,
-                    args.output,
-                    args.password,
-                    iterations=args.iterations,
-                    compress=(not args.no_compress),
+            for _label, _dest in destinations:
+                _backup_ok = bool(
+                    core.create_backup(
+                        args.source,
+                        _dest,
+                        args.password,
+                        iterations=args.iterations,
+                        compress=(not args.no_compress),
+                    )
                 )
-            )
-            if logger:
-                logger.info("backup ok=%s output=%s", ok, args.output)
+
+                _verify_ok = False
+                if _backup_ok:
+                    _verify_ok = bool(_call_verify(core, _dest, args.password))
+
+                backup_results.append({
+                    "label": _label,
+                    "output": _dest,
+                    "backup_ok": bool(_backup_ok),
+                    "verify_ok": bool(_verify_ok),
+                })
+
+                if logger:
+                    logger.info(
+                        "backup target=%s output=%s backup_ok=%s verify_ok=%s",
+                        _label, _dest, _backup_ok, _verify_ok
+                    )
+
+                if (not _backup_ok) or (not _verify_ok):
+                    all_ok = False
+
         except Exception as e:
             if args.json:
-                _emit_json({"ok": False, "command": "backup", "error": f"{type(e).__name__}: {e}"})
+                _emit_json({
+                    "ok": False,
+                    "command": "backup",
+                    "error": f"{type(e).__name__}: {e}",
+                    "requested_output": requested_output,
+                    "results": backup_results,
+                })
                 return 1
             _safe_print(f"ERROR ERREUR BACKUP: {type(e).__name__}: {e}")
             if logger:
@@ -613,12 +693,25 @@ Chiffrement AES-256-GCM (standard industriel)
             return 1
 
         if args.json:
-            _emit_json({"ok": ok, "command": "backup", "output": args.output, "elapsed_s": round(time.time() - start_time, 3)})
-            return 0 if ok else 1
+            _emit_json({
+                "ok": bool(all_ok),
+                "command": "backup",
+                "requested_output": requested_output,
+                "outputs": [x["output"] for x in backup_results],
+                "results": backup_results,
+                "elapsed_s": round(time.time() - start_time, 3),
+            })
+            return 0 if all_ok else 1
 
-        print_footer(ok=ok)
-        return 0 if ok else 1
+        if backup_results:
+            for _r in backup_results:
+                _safe_print(
+                    f"   -> {_r['label']} | backup={'OK' if _r['backup_ok'] else 'ERROR'} | "
+                    f"verify={'OK' if _r['verify_ok'] else 'ERROR'} | {_r['output']}"
+                )
 
+        print_footer(ok=all_ok)
+        return 0 if all_ok else 1
     if args.command == "verify":
         if not args.json:
             _safe_print(f"-> Verify : {args.backup}")
